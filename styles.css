@@ -53,6 +53,7 @@ html { font-size: 100%; }
 html[data-text="grande"] { font-size: 112.5%; }
 
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 body {
   margin: 0;
   background: var(--fondo);
@@ -420,3 +421,32 @@ body {
 .hoja::backdrop { background: rgba(0,0,0,.35); }
 .hoja h2 { margin: 0 0 8px; font-size: 1.1rem; }
 .hoja p { margin: 0 0 18px; color: var(--suave); font-size: .92rem; }
+
+/* =========================================================
+   Acciones del recordatorio
+   ========================================================= */
+.item .centro { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+.item .centro .cuerpo { width: 100%; }
+.accion-item {
+  display: inline-flex; align-items: center; gap: 6px; min-height: 36px;
+  padding: 7px 14px; border-radius: 999px; text-decoration: none;
+  background: var(--acento-suave); color: var(--acento); font: 600 .85rem Inter, sans-serif;
+}
+.chip-accion {
+  display: inline-block; margin-left: 4px; padding: 1px 8px; border-radius: 999px;
+  background: var(--acento-suave); color: var(--acento); font-weight: 600; font-size: .8rem; white-space: nowrap;
+}
+.aviso a.accion {
+  border: 0; background: var(--acento); color: var(--sobre-acento); text-decoration: none;
+  border-radius: 999px; padding: 7px 12px; font: 600 .85rem Inter, sans-serif; white-space: nowrap;
+}
+.accion-editor { border: 0; margin: 0; padding: 10px 0 0; border-top: 1px solid var(--linea); display: grid; gap: 8px; min-width: 0; }
+.accion-editor legend { padding: 0; font-size: .78rem; letter-spacing: .06em; text-transform: uppercase; color: var(--suave); font-weight: 600; float: left; width: 100%; margin-bottom: 2px; }
+.accion-editor select {
+  width: 100%; border: 1px solid var(--linea); border-radius: 10px; background: var(--fondo); color: var(--tinta);
+  font: inherit; padding: 9px 10px; min-height: 42px;
+}
+.accion-editor .fila input { flex: 1; }
+.nota-accion { margin: 0; font-size: .78rem; color: var(--suave); }
+.hoja .primario { text-decoration: none; display: inline-flex; align-items: center; }
+.hoja p { overflow-wrap: anywhere; }

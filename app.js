@@ -182,19 +182,30 @@
       cuerpo.appendChild(c);
     }
 
-    const acciones = document.createElement('div');
-    acciones.className = 'acciones';
-    if (vencido || (p.avisado && !p.hecho)) {
-      acciones.appendChild(boton('posponer', '+10 min', 'Posponer 10 minutos', () => posponer(p.id)));
+    // Botón de la acción (llamar, pagar, reunión, cómo llegar, enlace)
+    const centro = document.createElement('div');
+    centro.className = 'centro';
+    centro.appendChild(cuerpo);
+    const dest = !p.hecho && acciones.destino(p);
+    if (dest) {
+      const tipo = acciones.TIPOS[p.actionType];
+      const etiqueta = p.actionType === 'llamar' && p.contactName ? `${tipo.boton}` : tipo.boton;
+      centro.appendChild(enlaceAccion(dest, `${tipo.icono} ${etiqueta}`, 'accion-item'));
     }
-    acciones.appendChild(boton('borrar', '×', 'Borrar', async () => {
+
+    const zona = document.createElement('div');
+    zona.className = 'acciones';
+    if (vencido || (p.avisado && !p.hecho)) {
+      zona.appendChild(boton('posponer', '+10 min', 'Posponer 10 minutos', () => posponer(p.id)));
+    }
+    zona.appendChild(boton('borrar', '×', 'Borrar', async () => {
       pendientes = pendientes.filter((x) => x.id !== p.id);
       await guardar(); pintar();
       almacen.sincronizar({ ...p, hecho: true }); // en el servidor, borrar = ya no avisar
       avisar('Pendiente borrado');
     }));
 
-    div.append(check, cuerpo, acciones);
+    div.append(check, centro, zona);
     return div;
   }
 
@@ -218,6 +229,60 @@
     const quitar = boton('quitar', 'Sin fecha', null, () => { f.value = ''; });
     filaFecha.append(f, quitar);
 
+    // ---- Acción (opcional) ----
+    const sec = document.createElement('fieldset');
+    sec.className = 'accion-editor';
+    const leyenda = document.createElement('legend');
+    leyenda.textContent = 'Acción';
+    const tipoSel = document.createElement('select');
+    tipoSel.setAttribute('aria-label', 'Tipo de acción');
+    [['', 'Sin acción'], ...Object.entries(acciones.TIPOS).map(([k, v]) => [k, `${v.icono} ${v.etiqueta}`])]
+      .forEach(([v, txt]) => { const o = document.createElement('option'); o.value = v; o.textContent = txt; tipoSel.appendChild(o); });
+    // Si el pendiente aún no tiene acción, se sugiere una según el texto (se puede cambiar)
+    const sugerida = p.actionType === undefined ? acciones.sugerir(p.texto) : null;
+    tipoSel.value = p.actionType || (sugerida && sugerida.actionType) || '';
+
+    const campo = (tipo, placeholder, valor, extra = {}) => {
+      const i = document.createElement('input');
+      i.type = tipo; i.placeholder = placeholder; i.value = valor || '';
+      Object.assign(i, extra);
+      i.setAttribute('aria-label', placeholder);
+      return i;
+    };
+    const nombre = campo('text', 'Nombre del contacto', p.contactName || (sugerida && sugerida.contactName), { autocomplete: 'off' });
+    const tel = campo('tel', 'Teléfono', p.contactPhone, { inputMode: 'tel', autocomplete: 'off' });
+    const url = campo('url', 'Enlace (https://…)', p.url, { inputMode: 'url', autocomplete: 'off' });
+    const lugar = campo('text', 'Dirección o enlace de mapas', p.location, { autocomplete: 'off' });
+    const filaTel = document.createElement('div');
+    filaTel.className = 'fila';
+    filaTel.appendChild(tel);
+    // Selector de contactos: solo existe en algunos teléfonos (Chrome en Android)
+    if ('contacts' in navigator && 'ContactsManager' in window) {
+      filaTel.appendChild(boton('quitar', 'Contactos', 'Elegir de mis contactos', async () => {
+        try {
+          const [c] = await navigator.contacts.select(['name', 'tel'], { multiple: false });
+          if (!c) return;
+          if (c.name && c.name[0]) nombre.value = c.name[0];
+          if (c.tel && c.tel[0]) tel.value = c.tel[0];
+        } catch {}
+      }));
+    }
+    const nota = document.createElement('p');
+    nota.className = 'nota-accion';
+    nota.textContent = 'Solo guarda el enlace. Nunca escribas contraseñas, NIP, CVV ni tokens.';
+
+    function mostrarCampos() {
+      const v = tipoSel.value;
+      nombre.hidden = filaTel.hidden = v !== 'llamar';
+      url.hidden = !['pago', 'reunion', 'enlace'].includes(v);
+      lugar.hidden = v !== 'ubicacion';
+      nota.hidden = !['pago', 'enlace'].includes(v);
+      url.placeholder = v === 'pago' ? 'Enlace de pago o factura (https://…)' : v === 'reunion' ? 'Enlace de Meet, Zoom o Teams' : 'Enlace (https://…)';
+    }
+    tipoSel.addEventListener('change', mostrarCampos);
+    sec.append(leyenda, tipoSel, nombre, filaTel, url, lugar, nota);
+    mostrarCampos();
+
     const botones = document.createElement('div');
     botones.className = 'fila fin';
     const cancelar = boton('secundario', 'Cancelar', null, () => { editando = null; pintar(); });
@@ -227,7 +292,7 @@
     ok.textContent = 'Guardar cambios';
     botones.append(cancelar, ok);
 
-    form.append(t, filaFecha, botones);
+    form.append(t, filaFecha, sec, botones);
     form.onsubmit = async (e) => {
       e.preventDefault();
       const texto = t.value.trim();
@@ -241,10 +306,16 @@
         p.conHora = false;
       }
       p.avisado = false;
+      // La acción nunca impide guardar: si un dato no es válido, se guarda sin él.
+      Object.assign(p, acciones.normalizar({
+        actionType: tipoSel.value || null,
+        contactName: nombre.value, contactPhone: tel.value, url: url.value, location: lugar.value,
+      }));
       editando = null;
       await guardar(); pintar();
       almacen.sincronizar(p);
-      avisar('Cambios guardados');
+      const incompleta = p.actionType && !p.actionValue;
+      avisar(incompleta ? 'Guardado. Falta el dato de la acción (teléfono, enlace o dirección).' : 'Cambios guardados');
     };
     setTimeout(() => t.focus(), 0);
     return form;
@@ -274,12 +345,20 @@
     const caja = $('entendido');
     $('guardar').disabled = !frase;
     if (!frase) { borrador = null; caja.hidden = true; return; }
-    borrador = window.interpretar(frase);
+    const extra = acciones.extraer(frase);
+    borrador = window.interpretar(extra.resto || frase);
+    borrador.accion = acciones.sugerir(borrador.texto, extra);
     caja.hidden = false;
     caja.innerHTML = '';
     const que = document.createElement('strong');
     que.textContent = borrador.texto;
     caja.append('Entendí: ', que, ' — ', borrador.cuando ? describir(borrador.cuando, borrador.conHora) : 'sin fecha');
+    if (borrador.accion.actionType) {
+      const chip = document.createElement('span');
+      chip.className = 'chip-accion';
+      chip.textContent = acciones.TIPOS[borrador.accion.actionType].icono + ' ' + acciones.TIPOS[borrador.accion.actionType].etiqueta;
+      caja.append(' ', chip);
+    }
   });
 
   $('captura').addEventListener('submit', async (e) => {
@@ -293,6 +372,7 @@
       hecho: false,
       avisado: false,
       creado: new Date().toISOString(),
+      ...acciones.normalizar(borrador.accion || {}),
     };
     pendientes.push(nuevo);
     await guardar();
@@ -303,7 +383,10 @@
     pintar();
     almacen.sincronizar(nuevo);
     ajustes.tocar('crear');
-    avisar('Guardado');
+    const falta = nuevo.actionType && !acciones.destino(nuevo);
+    const ofrecer = { llamar: 'Asociar contacto', pago: 'Agregar enlace de pago', reunion: 'Agregar enlace', ubicacion: 'Agregar dirección', enlace: 'Agregar enlace' };
+    if (falta) avisar('Guardado', { texto: ofrecer[nuevo.actionType], fn: () => { editando = nuevo.id; pintar(); } });
+    else avisar('Guardado');
   });
 
   // ---- Filtros ----
@@ -318,14 +401,29 @@
   let temporizador;
   function avisar(msg, accion) {
     const a = $('aviso');
+    const lista = accion ? (Array.isArray(accion) ? accion : [accion]) : [];
     a.innerHTML = '';
     const t = document.createElement('span');
     t.textContent = msg;
     a.appendChild(t);
-    if (accion) a.appendChild(boton('accion', accion.texto, null, () => { a.hidden = true; accion.fn(); }));
+    for (const ac of lista) {
+      if (ac.href) a.appendChild(enlaceAccion(ac.href, ac.texto, 'accion', () => { a.hidden = true; }));
+      else a.appendChild(boton('accion', ac.texto, null, () => { a.hidden = true; ac.fn(); }));
+    }
     a.hidden = false;
     clearTimeout(temporizador);
-    temporizador = setTimeout(() => { a.hidden = true; }, accion ? 9000 : 2600);
+    temporizador = setTimeout(() => { a.hidden = true; }, lista.length ? 9000 : 2600);
+  }
+
+  // Enlace que abre la acción (marcador, pago, reunión, mapa). Nada se abre solo: la persona toca.
+  function enlaceAccion(href, texto, clase, alTocar) {
+    const a = document.createElement('a');
+    a.className = clase;
+    a.href = href;
+    a.textContent = texto;
+    if (!href.startsWith('tel:')) { a.target = '_blank'; a.rel = 'noopener noreferrer'; }
+    if (alTocar) a.addEventListener('click', alTocar);
+    return a;
   }
 
   // ---- Recordatorios con la app abierta ----
@@ -337,7 +435,10 @@
       if (new Date(p.cuando) <= ahora) {
         p.avisado = true;
         cambio = true;
-        avisar('⏰ ' + p.texto, { texto: `+${POSPONER_MIN} min`, fn: () => posponer(p.id) });
+        const dest = acciones.destino(p);
+        const botonesAviso = [{ texto: `+${POSPONER_MIN} min`, fn: () => posponer(p.id) }];
+        if (dest) botonesAviso.unshift({ texto: acciones.TIPOS[p.actionType].boton, href: dest });
+        avisar('⏰ ' + p.texto, botonesAviso);
         ajustes.tocar('recordatorio');
         ajustes.vibrar();
         mostrarNotificacion(p);
@@ -351,13 +452,14 @@
     if (!('Notification' in window) || Notification.permission !== 'granted') return;
     try {
       const reg = await navigator.serviceWorker.ready;
-      await reg.showNotification('Agenda Inteligente', {
-        body: p.texto,
+      const cuerpo = acciones.cuerpoNotificacion(p);
+      await reg.showNotification(cuerpo ? p.texto : 'Agenda Inteligente', {
+        body: cuerpo || p.texto,
         tag: p.id,
         icon: 'icons/icon-192.png',
         badge: 'icons/badge-96.png',
         data: { id: p.id },
-        actions: [{ action: 'posponer', title: `Posponer ${POSPONER_MIN} min` }, { action: 'hecho', title: 'Hecho' }],
+        actions: acciones.botonesNotificacion(p, Notification.maxActions || 2, POSPONER_MIN),
       });
     } catch {}
   }
@@ -732,6 +834,26 @@
     estadoAvisos();
     // Atajo "Nuevo pendiente" del ícono: abre directo en el campo de captura
     if (new URLSearchParams(location.search).has('nuevo')) entrada.focus();
+    // Abierta desde el botón de acción de un aviso (cuando el navegador no abre el marcador directo)
+    const idAccion = new URLSearchParams(location.search).get('accion');
+    if (idAccion) {
+      history.replaceState(null, '', location.pathname);
+      const p = pendientes.find((x) => x.id === idAccion);
+      const dest = p && acciones.destino(p);
+      const dlg = $('hojaAccion');
+      if (dest && typeof dlg.showModal === 'function') {
+        const tipo = acciones.TIPOS[p.actionType];
+        $('hojaAccionTitulo').textContent = p.texto;
+        $('hojaAccionDetalle').textContent = p.actionType === 'llamar'
+          ? `${p.contactName ? p.contactName + ' · ' : ''}${p.contactPhone}` : dest;
+        const ir = $('hojaAccionIr');
+        ir.textContent = tipo.boton;
+        ir.href = dest;
+        if (!dest.startsWith('tel:')) { ir.target = '_blank'; ir.rel = 'noopener noreferrer'; }
+        ir.onclick = () => dlg.close();
+        dlg.showModal();
+      }
+    }
   });
   setInterval(() => { revisarRecordatorios(); pintarResumen(); }, 30000);
 })();

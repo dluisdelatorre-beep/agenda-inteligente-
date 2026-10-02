@@ -2,12 +2,12 @@
 // 1) Guarda la app para que abra sin señal.
 // 2) Recibe los avisos del servidor (Web Push) y los muestra.
 // 3) Atiende los botones del aviso: "Posponer 10 min" y "Hecho".
-importScripts('almacen.js');
+importScripts('almacen.js', 'acciones.js');
 
-const CACHE = 'agenda-v5';
+const CACHE = 'agenda-v6';
 const POSPONER_MIN = 10;
 const ARCHIVOS = [
-  '/', '/index.html', '/styles.css', '/app.js', '/parser.js', '/almacen.js', '/ajustes.js',
+  '/', '/index.html', '/styles.css', '/app.js', '/parser.js', '/almacen.js', '/ajustes.js', '/acciones.js',
   '/manifest.webmanifest', '/icon.svg', '/icons/icon-192.png', '/icons/icon-512.png',
   '/icons/icon-maskable-512.png', '/icons/badge-96.png', '/icons/apple-touch-icon.png', '/icons/favicon-48.png',
 ];
@@ -40,28 +40,30 @@ self.addEventListener('push', (e) => {
   try { datos = e.data ? e.data.json() : {}; } catch { datos = { cuerpo: e.data && e.data.text() }; }
   e.waitUntil((async () => {
     // Si en el teléfono ya se marcó como hecho o se movió de hora, no molestamos.
+    let p = null;
     if (datos.id) {
       const lista = await almacen.leer();
-      const p = lista.find((x) => x.id === datos.id);
+      p = lista.find((x) => x.id === datos.id) || null;
       if (p && (p.hecho || (p.cuando && new Date(p.cuando) - Date.now() > 60000))) return;
       if (p) { p.avisado = true; await almacen.guardar(lista); await almacen.avisarPantallas(); }
     }
     // Vibración según Ajustes (solo donde el sistema la respeta, como Android).
     let vibrar = true;
     try { const a = await almacen.leerAjustes(); if (a && a.vibrationEnabled === false) vibrar = false; } catch {}
-    await self.registration.showNotification(datos.titulo || 'Agenda Inteligente', {
+    // La acción (teléfono, enlace, dirección) vive solo en el teléfono: el servidor nunca la ve.
+    const cuerpoAccion = p && acciones.cuerpoNotificacion(p);
+    const maximo = (self.Notification && Notification.maxActions) || 2;
+    await self.registration.showNotification(cuerpoAccion ? p.texto : (datos.titulo || 'Agenda Inteligente'), {
       vibrate: vibrar ? [120, 80, 120] : [],
       silent: false,
-      body: datos.cuerpo || 'Tienes un pendiente',
+      body: cuerpoAccion || datos.cuerpo || 'Tienes un pendiente',
       tag: datos.id || undefined,
       renotify: true,
       requireInteraction: true,
       icon: 'icons/icon-192.png',
       badge: 'icons/badge-96.png',
       data: { id: datos.id },
-      actions: datos.id
-        ? [{ action: 'posponer', title: `Posponer ${POSPONER_MIN} min` }, { action: 'hecho', title: 'Hecho' }]
-        : [],
+      actions: datos.id ? acciones.botonesNotificacion(p || {}, maximo, POSPONER_MIN) : [],
     });
   })());
 });
@@ -75,6 +77,18 @@ self.addEventListener('notificationclick', (e) => {
       const p = await almacen.posponer(id, POSPONER_MIN);
       if (p) await almacen.sincronizar(p);
       return almacen.avisarPantallas();
+    }
+    // "Llamar ahora", "Abrir pago", "Entrar a reunión", "Cómo llegar", "Abrir enlace".
+    // Abre el marcador o el enlace; la llamada siempre la confirma la persona.
+    if (id && e.action === 'abrir') {
+      const lista = await almacen.leer();
+      const destino = acciones.destino(lista.find((x) => x.id === id));
+      if (destino && destino.startsWith('tel:')) {
+        try { await self.clients.openWindow(destino); return; } catch {}
+        // Si el navegador no deja abrir el marcador directo, abrimos la app con el botón listo.
+        return self.clients.openWindow('/?accion=' + encodeURIComponent(id));
+      }
+      if (destino) return self.clients.openWindow(destino);
     }
     if (id && e.action === 'hecho') {
       const p = await almacen.marcarHecho(id);

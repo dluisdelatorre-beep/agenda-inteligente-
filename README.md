@@ -19,6 +19,7 @@ En producción: https://agenda-inteligente-acevedo.vercel.app
 - Calendario mensual con indicador en los días con pendientes; al tocar un día se ven sus pendientes por hora, editables.
 - Buscar instantáneo que ignora mayúsculas y acentos, con filtros Todos, Pendientes y Hechos.
 - Ajustes: tema (automático, claro, oscuro), 5 colores de acento, densidad, tamaño de texto, sonidos dentro de la app (Suave, Digital, Minimal o sin sonido), vibración, estado de los avisos y restaurar apariencia. Las preferencias se guardan aparte de los pendientes.
+- Acciones del recordatorio: llamar (con contacto o teléfono), abrir pago, entrar a reunión (Meet, Zoom, Teams), cómo llegar (dirección o mapa) y abrir enlace. Se sugieren solas según el texto y se pueden cambiar; nunca impiden guardar. Los avisos muestran la acción principal. No se guardan contraseñas, NIP, CVV, tokens ni credenciales.
 
 ## Cómo está hecha
 
@@ -27,6 +28,7 @@ En producción: https://agenda-inteligente-acevedo.vercel.app
 | `index.html`, `styles.css`, `app.js` | La pantalla |
 | `parser.js` | Entiende las frases en español |
 | `almacen.js` | Guarda los pendientes en el teléfono (IndexedDB), compartido con el service worker |
+| `acciones.js` | Detecta y abre las acciones del recordatorio (llamar, pago, reunión, ubicación, enlace) |
 | `ajustes.js` | Preferencias de apariencia y sonido, y los sonidos (generados con Web Audio, sin archivos) |
 | `sw.js` | Service worker: abre sin señal, recibe los avisos y atiende sus botones |
 | `api/vapid.js` | Da la llave pública para suscribirse a los avisos |
@@ -70,4 +72,5 @@ Pruebas de pantalla del sprint Calendario + Buscar + Ajustes (20 pruebas, en Chr
 ```
 python3 -m http.server 8765 &
 python3 test/sprint-calendario-buscar-ajustes.py
+python3 test/acciones-pantalla.py
 ```
