@@ -23,6 +23,9 @@ with sync_playwright() as p:
     pg.press("#entrada", "Enter"); pg.wait_for_selector("#aviso:not([hidden])")
     assert "Asociar contacto" in pg.inner_text("#aviso")
     paso("se guarda al instante y ofrece 'Asociar contacto' sin estorbar")
+    inc = pg.locator("#lista .item", has_text="Llamar a Luis").locator(".accion-item.incompleta")
+    assert inc.count() == 1 and "Agregar teléfono" in inc.inner_text()
+    paso("sin número, la tarjeta muestra '📞 Agregar teléfono' (no se queda sin pista)")
     pg.click("#aviso >> text=Asociar contacto"); pg.wait_for_selector("#lista .editor")
     ed = "#lista .editor"
     assert pg.eval_on_selector(f"{ed} select", "s => s.value") == "llamar"

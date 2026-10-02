@@ -4,7 +4,7 @@
 // 3) Atiende los botones del aviso: "Posponer 10 min" y "Hecho".
 importScripts('almacen.js', 'acciones.js');
 
-const CACHE = 'agenda-v7';
+const CACHE = 'agenda-v8';
 const POSPONER_MIN = 10;
 const ARCHIVOS = [
   '/', '/index.html', '/styles.css', '/app.js', '/parser.js', '/almacen.js', '/ajustes.js', '/acciones.js',
@@ -53,6 +53,11 @@ self.addEventListener('push', (e) => {
     // La acción (teléfono, enlace, dirección) vive solo en el teléfono: el servidor nunca la ve.
     const cuerpoAccion = p && acciones.cuerpoNotificacion(p);
     const maximo = (self.Notification && Notification.maxActions) || 2;
+    // Si quedó un aviso anterior del mismo pendiente en la barra, se cierra para que el nuevo
+    // entre como aviso nuevo (con sonido) y no como reemplazo silencioso.
+    if (datos.id) {
+      try { (await self.registration.getNotifications({ tag: datos.id })).forEach((n) => n.close()); } catch {}
+    }
     await self.registration.showNotification(cuerpoAccion ? p.texto : (datos.titulo || 'Agenda Inteligente'), {
       vibrate: vibrar ? [120, 80, 120] : [],
       silent: false,

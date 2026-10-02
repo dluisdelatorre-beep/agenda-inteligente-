@@ -200,6 +200,10 @@
       const tipo = acciones.TIPOS[p.actionType];
       const etiqueta = p.actionType === 'llamar' && p.contactName ? `${tipo.boton}` : tipo.boton;
       centro.appendChild(enlaceAccion(dest, `${tipo.icono} ${etiqueta}`, 'accion-item'));
+    } else if (!p.hecho && p.actionType && acciones.TIPOS[p.actionType]) {
+      const falta = { llamar: 'Agregar teléfono', pago: 'Agregar enlace de pago', reunion: 'Agregar enlace', ubicacion: 'Agregar dirección', enlace: 'Agregar enlace' };
+      centro.appendChild(boton('accion-item incompleta', `${acciones.TIPOS[p.actionType].icono} ${falta[p.actionType]}`, null,
+        () => { editando = p.id; pintar(); }));
     }
 
     const zona = document.createElement('div');
@@ -460,6 +464,8 @@
   async function mostrarNotificacion(p) {
     if (!('Notification' in window) || Notification.permission !== 'granted') return;
     try {
+      // Si el servidor ya avisa por Web Push, ese aviso es el bueno (con sonido): no lo duplicamos.
+      if (await almacen.suscripcion()) return;
       const reg = await navigator.serviceWorker.ready;
       const cuerpo = acciones.cuerpoNotificacion(p);
       await reg.showNotification(cuerpo ? p.texto : 'Agenda Inteligente', {

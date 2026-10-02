@@ -505,3 +505,5 @@ body {
 .tab.activo::after {
   content: ''; width: 4px; height: 4px; border-radius: 50%; background: var(--oro); margin-top: 1px;
 }
+
+.accion-item.incompleta { border: 1px dashed var(--acento); background: transparent; cursor: pointer; }
