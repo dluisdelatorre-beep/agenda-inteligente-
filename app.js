@@ -8,6 +8,7 @@
   let filtro = 'pendientes';
   let borrador = null;
   let editando = null; // id del pendiente que se está editando
+  let vistaActual = 'hoy';
 
   async function recargar() {
     pendientes = await almacen.leer();
@@ -132,7 +133,7 @@
           lista.appendChild(h);
           grupoActual = g;
         }
-        lista.appendChild(p.id === editando ? editor(p) : tarjeta(p, ahora));
+        lista.appendChild(item(p, ahora, 'hoy'));
       });
   }
 
@@ -146,6 +147,11 @@
     return b;
   }
 
+  // El editor se abre solo en la pantalla que está a la vista (no en las ocultas).
+  function item(p, ahora, vista) {
+    return p.id === editando && vista === vistaActual ? editor(p) : tarjeta(p, ahora);
+  }
+
   function tarjeta(p, ahora) {
     const div = document.createElement('div');
     const vencido = !p.hecho && p.cuando && new Date(p.cuando) < ahora;
@@ -155,6 +161,7 @@
       p.hecho = !p.hecho;
       p.hechoEn = p.hecho ? new Date().toISOString() : null;
       if (!p.hecho) p.avisado = false;
+      if (p.hecho) ajustes.tocar('hecho');
       await guardar(); pintar();
       almacen.sincronizar(p);
     });
@@ -163,7 +170,7 @@
     cuerpo.type = 'button';
     cuerpo.className = 'cuerpo';
     cuerpo.setAttribute('aria-label', 'Editar: ' + p.texto);
-    cuerpo.onclick = () => { if (!p.hecho) { editando = p.id; pintarLista(); } };
+    cuerpo.onclick = () => { if (!p.hecho) { editando = p.id; pintar(); } };
     const texto = document.createElement('span');
     texto.className = 'texto';
     texto.textContent = p.texto;
@@ -213,7 +220,7 @@
 
     const botones = document.createElement('div');
     botones.className = 'fila fin';
-    const cancelar = boton('secundario', 'Cancelar', null, () => { editando = null; pintarLista(); });
+    const cancelar = boton('secundario', 'Cancelar', null, () => { editando = null; pintar(); });
     const ok = document.createElement('button');
     ok.type = 'submit';
     ok.className = 'primario';
@@ -248,11 +255,17 @@
     await recargar();
     if (p) {
       almacen.sincronizar(p);
+      ajustes.tocar('posponer');
       avisar(`Te recuerdo a las ${fmtHora(new Date(p.cuando))}`);
     }
   }
 
-  function pintar() { pintarEncabezado(); pintarResumen(); pintarLista(); }
+  // Pinta Hoy siempre (es la base) y además la pantalla que esté a la vista.
+  function pintar() {
+    pintarEncabezado(); pintarResumen(); pintarLista();
+    if (vistaActual === 'calendario') pintarCalendario();
+    if (vistaActual === 'buscar') pintarBusqueda();
+  }
 
   // ---- Captura en lenguaje natural ----
   const entrada = $('entrada');
@@ -289,6 +302,7 @@
     marcarFiltro();
     pintar();
     almacen.sincronizar(nuevo);
+    ajustes.tocar('crear');
     avisar('Guardado');
   });
 
@@ -324,6 +338,8 @@
         p.avisado = true;
         cambio = true;
         avisar('⏰ ' + p.texto, { texto: `+${POSPONER_MIN} min`, fn: () => posponer(p.id) });
+        ajustes.tocar('recordatorio');
+        ajustes.vibrar();
         mostrarNotificacion(p);
       }
     }
@@ -443,15 +459,275 @@
     try { sessionStorage.setItem('tip-ios', '1'); } catch {}
   });
 
+  // =====================================================================
+  // NAVEGACIÓN: Hoy · Calendario · Buscar · Ajustes
+  // Hoy es la base. Salir de Hoy agrega un paso al historial, así el botón
+  // "atrás" del teléfono regresa a Hoy como en una app nativa.
+  // =====================================================================
+  const VISTAS = ['hoy', 'calendario', 'buscar', 'ajustes'];
+
+  function mostrarVista(vista) {
+    if (!VISTAS.includes(vista)) vista = 'hoy';
+    if (vista !== vistaActual) editando = null;
+    vistaActual = vista;
+    document.querySelectorAll('.vista').forEach((v) => { v.hidden = v.dataset.vista !== vista; });
+    document.querySelectorAll('.tab').forEach((t) => {
+      const activo = t.dataset.ir === vista;
+      t.classList.toggle('activo', activo);
+      if (activo) t.setAttribute('aria-current', 'page'); else t.removeAttribute('aria-current');
+    });
+    window.scrollTo(0, 0);
+    if (vista === 'ajustes') pintarAjustes(); else pintar();
+  }
+
+  function navegar(vista) {
+    if (vista === vistaActual) { window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
+    if (vista === 'hoy') {
+      if (history.state && history.state.vista) history.back(); // regresa al paso de Hoy
+      else { history.replaceState(null, '', location.pathname); mostrarVista('hoy'); }
+      return;
+    }
+    if (vistaActual === 'hoy') history.pushState({ vista }, '', '#' + vista);
+    else history.replaceState({ vista }, '', '#' + vista);
+    mostrarVista(vista);
+  }
+
+  document.querySelectorAll('.tab').forEach((t) => t.addEventListener('click', () => navegar(t.dataset.ir)));
+  window.addEventListener('popstate', () => mostrarVista((history.state && history.state.vista) || 'hoy'));
+
+  // =====================================================================
+  // CALENDARIO — vista mensual; misma información de IndexedDB
+  // =====================================================================
+  const hoy0 = () => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), d.getDate()); };
+  let mesVisto = (() => { const d = hoy0(); return new Date(d.getFullYear(), d.getMonth(), 1); })();
+  let diaSel = hoy0();
+  const claveDia = (d) => `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+  const mayus = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+
+  function pintarCalendario() {
+    const ahora = new Date();
+    const porDia = new Map();
+    for (const p of pendientes) {
+      if (!p.cuando) continue;
+      const k = claveDia(new Date(p.cuando));
+      const e = porDia.get(k) || { activos: 0, hechos: 0 };
+      if (p.hecho) e.hechos++; else e.activos++;
+      porDia.set(k, e);
+    }
+
+    $('mesTitulo').textContent = mayus(mesVisto.toLocaleDateString('es-MX', { month: 'long', year: 'numeric' }));
+    const cuad = $('cuadricula');
+    cuad.innerHTML = '';
+    const desfase = (mesVisto.getDay() + 6) % 7; // semana empieza en lunes
+    const diasMes = new Date(mesVisto.getFullYear(), mesVisto.getMonth() + 1, 0).getDate();
+    for (let i = 0; i < desfase; i++) cuad.appendChild(document.createElement('span'));
+    const hoy = hoy0();
+    for (let n = 1; n <= diasMes; n++) {
+      const d = new Date(mesVisto.getFullYear(), mesVisto.getMonth(), n);
+      const e = porDia.get(claveDia(d));
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'dia' + (mismoDia(d, hoy) ? ' es-hoy' : '') + (mismoDia(d, diaSel) ? ' sel' : '');
+      b.textContent = n;
+      let etiqueta = d.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' });
+      if (e) {
+        const punto = document.createElement('span');
+        punto.className = 'punto' + (e.activos ? '' : ' tenue');
+        b.appendChild(punto);
+        b.dataset.pendientes = e.activos;
+        etiqueta += e.activos ? `, ${e.activos} ${e.activos === 1 ? 'pendiente' : 'pendientes'}` : ', todo hecho';
+      }
+      b.setAttribute('aria-label', etiqueta);
+      if (mismoDia(d, diaSel)) b.setAttribute('aria-pressed', 'true');
+      b.onclick = () => { diaSel = d; editando = null; pintarCalendario(); };
+      cuad.appendChild(b);
+    }
+
+    // Pendientes del día elegido, ordenados por hora
+    const delDia = pendientes
+      .filter((p) => p.cuando && mismoDia(new Date(p.cuando), diaSel))
+      .sort((a, b) => (a.hecho - b.hecho) || (new Date(a.cuando) - new Date(b.cuando)));
+    let titulo = mayus(diaSel.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' }));
+    if (mismoDia(diaSel, hoy)) titulo = 'Hoy · ' + titulo;
+    $('diaTitulo').textContent = titulo;
+    const lista = $('listaDia');
+    lista.innerHTML = '';
+    if (!delDia.length) {
+      const p = document.createElement('p');
+      p.className = 'nada';
+      p.textContent = 'Sin pendientes este día.';
+      lista.appendChild(p);
+    }
+    delDia.forEach((p) => lista.appendChild(item(p, ahora, 'calendario')));
+  }
+
+  function moverMes(delta) {
+    mesVisto = new Date(mesVisto.getFullYear(), mesVisto.getMonth() + delta, 1);
+    editando = null;
+    pintarCalendario();
+  }
+  $('mesAnterior').addEventListener('click', () => moverMes(-1));
+  $('mesSiguiente').addEventListener('click', () => moverMes(1));
+  $('irHoy').addEventListener('click', () => {
+    diaSel = hoy0();
+    mesVisto = new Date(diaSel.getFullYear(), diaSel.getMonth(), 1);
+    editando = null;
+    pintarCalendario();
+  });
+  // Deslizar a los lados cambia de mes
+  (() => {
+    let x0 = null, y0 = null;
+    const c = $('cuadricula');
+    c.addEventListener('touchstart', (e) => { x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; }, { passive: true });
+    c.addEventListener('touchend', (e) => {
+      if (x0 === null) return;
+      const dx = e.changedTouches[0].clientX - x0, dy = e.changedTouches[0].clientY - y0;
+      if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) moverMes(dx < 0 ? 1 : -1);
+      x0 = null;
+    }, { passive: true });
+  })();
+
+  // =====================================================================
+  // BUSCAR — ignora mayúsculas y acentos; los hechos siguen apareciendo
+  // =====================================================================
+  const normalizar = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+  let filtroBusca = 'todos';
+
+  function pintarBusqueda() {
+    const ahora = new Date();
+    const consulta = normalizar($('busca').value).trim();
+    const palabras = consulta.split(/\s+/).filter(Boolean);
+    const lista = $('resultados');
+    lista.innerHTML = '';
+    if (!palabras.length) {
+      $('conteo').textContent = '';
+      const p = document.createElement('p');
+      p.className = 'nada';
+      p.textContent = 'Escribe una palabra para buscar en todos tus pendientes, también en los ya hechos.';
+      lista.appendChild(p);
+      return;
+    }
+    const encontrados = pendientes
+      .filter((p) => (filtroBusca === 'todos' ? true : filtroBusca === 'hechos' ? p.hecho : !p.hecho))
+      .filter((p) => { const t = normalizar(p.texto); return palabras.every((w) => t.includes(w)); })
+      .sort((a, b) => {
+        if (a.hecho !== b.hecho) return a.hecho ? 1 : -1;
+        if (a.hecho) return new Date(b.hechoEn || 0) - new Date(a.hechoEn || 0);
+        if (!a.cuando) return 1;
+        if (!b.cuando) return -1;
+        return new Date(a.cuando) - new Date(b.cuando);
+      });
+    $('conteo').textContent = encontrados.length === 1 ? '1 resultado' : `${encontrados.length} resultados`;
+    if (!encontrados.length) {
+      const p = document.createElement('p');
+      p.className = 'nada';
+      p.textContent = 'No encontré nada con esa palabra.';
+      lista.appendChild(p);
+      return;
+    }
+    encontrados.forEach((p) => lista.appendChild(item(p, ahora, 'buscar')));
+  }
+
+  $('busca').addEventListener('input', () => { editando = null; pintarBusqueda(); });
+  document.querySelectorAll('.chip').forEach((c) => c.addEventListener('click', () => {
+    filtroBusca = c.dataset.busca;
+    document.querySelectorAll('.chip').forEach((x) => x.classList.toggle('activo', x === c));
+    editando = null;
+    pintarBusqueda();
+  }));
+
+  // =====================================================================
+  // AJUSTES — apariencia, sonidos, vibración y estado de avisos
+  // =====================================================================
+  async function estadoNotificaciones() {
+    if (!hayPush) return { texto: 'No disponibles', clase: 'gris' };
+    if (Notification.permission === 'denied') return { texto: 'Bloqueadas', clase: 'mal' };
+    const sub = await almacen.suscripcion();
+    if (Notification.permission === 'granted' && sub) return { texto: 'Activadas', clase: 'bien' };
+    return { texto: 'Sin activar', clase: 'gris' };
+  }
+
+  async function pintarAjustes() {
+    const a = ajustes.actuales;
+    document.querySelectorAll('[data-ajuste]').forEach((g) => {
+      g.querySelectorAll('input[type=radio]').forEach((r) => { r.checked = r.value === String(a[g.dataset.ajuste]); });
+    });
+    $('ajSonido').checked = a.appSoundEnabled;
+    $('estiloSonido').disabled = !a.appSoundEnabled;
+    $('ajVibrar').checked = a.vibrationEnabled && ajustes.puedeVibrar;
+    $('ajVibrar').disabled = !ajustes.puedeVibrar;
+    $('notaVibrar').textContent = ajustes.puedeVibrar
+      ? 'Vibración corta y discreta.'
+      : 'Este teléfono o navegador no permite vibrar desde la app.';
+
+    const e = await estadoNotificaciones();
+    const el = $('estadoNotif');
+    el.textContent = e.texto;
+    el.className = 'estado ' + e.clase;
+    $('notaAvisos').textContent =
+      e.texto === 'Activadas' ? 'Te llegan aunque la app esté cerrada.'
+      : e.texto === 'Bloqueadas' ? 'Actívalas en los ajustes del navegador para esta página.'
+      : e.texto === 'No disponibles' ? (esIOS && !instalada ? 'En iPhone, instala la app en tu pantalla de inicio.' : 'Este navegador no permite avisos.')
+      : 'Toca "Configurar avisos" para encenderlas.';
+    $('configurarAvisos').hidden = e.texto === 'No disponibles';
+  }
+
+  document.querySelectorAll('[data-ajuste]').forEach((g) => {
+    g.addEventListener('change', async (ev) => {
+      const clave = g.dataset.ajuste;
+      await ajustes.cambiar({ [clave]: ev.target.value });
+      if (clave === 'appSoundStyle') ajustes.tocar('crear'); // muestra cómo suena (lo pidió el usuario con un toque)
+      pintarAjustes();
+    });
+  });
+  $('ajSonido').addEventListener('change', async (ev) => {
+    await ajustes.cambiar({ appSoundEnabled: ev.target.checked });
+    if (ev.target.checked) ajustes.tocar('crear');
+    pintarAjustes();
+  });
+  $('ajVibrar').addEventListener('change', async (ev) => {
+    await ajustes.cambiar({ vibrationEnabled: ev.target.checked });
+    if (ev.target.checked) ajustes.vibrar();
+  });
+  $('configurarAvisos').addEventListener('click', async () => {
+    if (Notification.permission === 'denied') {
+      avisar('Los avisos están bloqueados. Actívalos en los ajustes del navegador para esta página.');
+      return;
+    }
+    await activarAvisos();
+    pintarAjustes();
+  });
+
+  $('restaurar').addEventListener('click', async () => {
+    const dlg = $('confirmar');
+    const confirmar = () => new Promise((ok) => {
+      if (typeof dlg.showModal !== 'function') return ok(window.confirm('¿Restaurar la apariencia predeterminada? Tus pendientes no se tocan.'));
+      dlg.returnValue = '';
+      dlg.addEventListener('close', () => ok(dlg.returnValue === 'si'), { once: true });
+      dlg.showModal();
+    });
+    if (!(await confirmar())) return;
+    await ajustes.restaurar(); // solo apariencia y sonido; pendientes y avisos intactos
+    pintarAjustes();
+    avisar('Apariencia restaurada');
+  });
+
   // ---- Arranque ----
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('sw.js').catch(() => {});
     // El service worker avisa cuando cambió algo desde una notificación
     navigator.serviceWorker.addEventListener('message', (e) => { if (e.data && e.data.tipo === 'recargar') recargar(); });
   }
-  document.addEventListener('visibilitychange', () => { if (!document.hidden) recargar(); });
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) return;
+    recargar();
+    if (vistaActual === 'ajustes') pintarAjustes();
+  });
 
-  recargar().then(() => {
+  // Al abrir siempre empieza en Hoy (aunque la dirección traiga #calendario, etc.)
+  if (location.hash) history.replaceState(null, '', location.pathname + location.search);
+
+  Promise.all([ajustes.cargar(), recargar()]).then(() => {
     revisarRecordatorios();
     estadoAvisos();
     // Atajo "Nuevo pendiente" del ícono: abre directo en el campo de captura

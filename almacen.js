@@ -97,5 +97,13 @@
     abiertas.forEach((c) => c.postMessage({ tipo: 'recargar' }));
   }
 
-  raiz.almacen = { leer, guardar, cambiar, posponer, marcarHecho, sincronizar, suscripcion, avisarPantallas };
+  raiz.almacen = { leer, guardar, cambiar, posponer, marcarHecho, sincronizar, suscripcion, avisarPantallas, leerAjustes, guardarAjustes };
+
+  // ---- Preferencias (registro aparte: nunca se mezcla con los pendientes) ----
+  function leerAjustes() {
+    return operar('readonly', (s) => s.get('ajustes')).then((a) => a || null);
+  }
+  function guardarAjustes(ajustes) {
+    return operar('readwrite', (s) => s.put(ajustes, 'ajustes'));
+  }
 })(typeof self !== 'undefined' ? self : window);

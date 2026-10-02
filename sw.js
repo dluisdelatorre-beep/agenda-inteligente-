@@ -4,10 +4,10 @@
 // 3) Atiende los botones del aviso: "Posponer 10 min" y "Hecho".
 importScripts('almacen.js');
 
-const CACHE = 'agenda-v3';
+const CACHE = 'agenda-v4';
 const POSPONER_MIN = 10;
 const ARCHIVOS = [
-  '/', '/index.html', '/styles.css', '/app.js', '/parser.js', '/almacen.js',
+  '/', '/index.html', '/styles.css', '/app.js', '/parser.js', '/almacen.js', '/ajustes.js',
   '/manifest.webmanifest', '/icon.svg', '/icons/icon-192.png', '/icons/icon-512.png',
   '/icons/icon-maskable-512.png', '/icons/badge-96.png', '/icons/apple-touch-icon.png',
 ];
@@ -46,7 +46,12 @@ self.addEventListener('push', (e) => {
       if (p && (p.hecho || (p.cuando && new Date(p.cuando) - Date.now() > 60000))) return;
       if (p) { p.avisado = true; await almacen.guardar(lista); await almacen.avisarPantallas(); }
     }
+    // Vibración según Ajustes (solo donde el sistema la respeta, como Android).
+    let vibrar = true;
+    try { const a = await almacen.leerAjustes(); if (a && a.vibrationEnabled === false) vibrar = false; } catch {}
     await self.registration.showNotification(datos.titulo || 'Agenda Inteligente', {
+      vibrate: vibrar ? [120, 80, 120] : [],
+      silent: false,
       body: datos.cuerpo || 'Tienes un pendiente',
       tag: datos.id || undefined,
       renotify: true,

@@ -15,6 +15,10 @@ En producción: https://agenda-inteligente-acevedo.vercel.app
 - Avisos con la app cerrada (Web Push) con botones "Posponer 10 min" y "Hecho" que funcionan sin abrir la app.
 - Instalable: botón "Instalar" en Android y escritorio, instrucciones para iPhone, íconos para cada sistema y capturas para la ficha de instalación.
 - Abre sin señal (service worker).
+- Navegación inferior: Hoy, Calendario, Buscar y Ajustes. Hoy es la pantalla al abrir y el botón atrás regresa a Hoy.
+- Calendario mensual con indicador en los días con pendientes; al tocar un día se ven sus pendientes por hora, editables.
+- Buscar instantáneo que ignora mayúsculas y acentos, con filtros Todos, Pendientes y Hechos.
+- Ajustes: tema (automático, claro, oscuro), 5 colores de acento, densidad, tamaño de texto, sonidos dentro de la app (Suave, Digital, Minimal o sin sonido), vibración, estado de los avisos y restaurar apariencia. Las preferencias se guardan aparte de los pendientes.
 
 ## Cómo está hecha
 
@@ -23,6 +27,7 @@ En producción: https://agenda-inteligente-acevedo.vercel.app
 | `index.html`, `styles.css`, `app.js` | La pantalla |
 | `parser.js` | Entiende las frases en español |
 | `almacen.js` | Guarda los pendientes en el teléfono (IndexedDB), compartido con el service worker |
+| `ajustes.js` | Preferencias de apariencia y sonido, y los sonidos (generados con Web Audio, sin archivos) |
 | `sw.js` | Service worker: abre sin señal, recibe los avisos y atiende sus botones |
 | `api/vapid.js` | Da la llave pública para suscribirse a los avisos |
 | `api/suscripcion.js` | Registra o da de baja un teléfono |
@@ -59,3 +64,10 @@ npm test
 ```
 
 Prueban el intérprete de frases y el servidor de avisos contra un Postgres real en memoria, con llaves VAPID reales.
+
+Pruebas de pantalla del sprint Calendario + Buscar + Ajustes (20 pruebas, en Chromium con perfil persistente):
+
+```
+python3 -m http.server 8765 &
+python3 test/sprint-calendario-buscar-ajustes.py
+```

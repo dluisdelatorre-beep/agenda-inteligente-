@@ -5,8 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Agenda Inteligente</title>
   <meta name="description" content="Escribe como hablas y la agenda entiende el día y la hora.">
-  <meta name="theme-color" content="#0f3d3e" media="(prefers-color-scheme: light)">
-  <meta name="theme-color" content="#111717" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#f6f3ec">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="Agenda">
@@ -18,50 +17,219 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
+  <script>
+    // Aplica tema, acento, densidad y texto antes de pintar, para que no parpadee.
+    try {
+      var a = JSON.parse(localStorage.getItem('agenda-inteligente:ajustes')) || {};
+      var h = document.documentElement;
+      h.dataset.theme = a.theme || 'auto';
+      h.dataset.accent = a.accentColor || 'verde';
+      h.dataset.density = a.density || 'comoda';
+      h.dataset.text = a.textSize || 'normal';
+    } catch (e) {}
+  </script>
 </head>
 <body>
   <main class="app">
-    <div class="banda" id="instalar" hidden>
-      <span>Instala la Agenda en tu teléfono para abrirla como app.</span>
-      <button type="button" id="instalarBtn">Instalar</button>
-    </div>
-    <div class="banda" id="tipIOS" hidden>
-      <span>En iPhone: toca <strong>Compartir</strong> y luego <strong>Agregar a inicio</strong>. Así también te llegan los avisos.</span>
-      <button type="button" id="cerrarTip" class="cerrar" aria-label="Cerrar">×</button>
-    </div>
+    <!-- ================= HOY ================= -->
+    <section class="vista" id="vista-hoy" data-vista="hoy">
+      <div class="banda" id="instalar" hidden>
+        <span>Instala la Agenda en tu teléfono para abrirla como app.</span>
+        <button type="button" id="instalarBtn">Instalar</button>
+      </div>
+      <div class="banda" id="tipIOS" hidden>
+        <span>En iPhone: toca <strong>Compartir</strong> y luego <strong>Agregar a inicio</strong>. Así también te llegan los avisos.</span>
+        <button type="button" id="cerrarTip" class="cerrar" aria-label="Cerrar">×</button>
+      </div>
 
-    <header class="encabezado">
-      <p class="fecha-hoy" id="fechaHoy"></p>
-      <h1 id="saludo">Buen día</h1>
-    </header>
+      <header class="encabezado">
+        <p class="fecha-hoy" id="fechaHoy"></p>
+        <h1 id="saludo">Buen día</h1>
+      </header>
 
-    <section class="resumen" id="resumen" aria-live="polite"></section>
+      <section class="resumen" id="resumen" aria-live="polite"></section>
 
-    <form class="captura" id="captura" autocomplete="off">
-      <label for="entrada" class="oculto">Nuevo pendiente</label>
-      <input id="entrada" type="text" placeholder="Ej. mañana a las 5 llamar a Germán" enterkeyhint="done">
-      <div class="entendido" id="entendido" hidden></div>
-      <button type="submit" id="guardar" disabled>Guardar</button>
-    </form>
+      <form class="captura" id="captura" autocomplete="off">
+        <label for="entrada" class="oculto">Nuevo pendiente</label>
+        <input id="entrada" type="text" placeholder="Ej. mañana a las 5 llamar a Germán" enterkeyhint="done">
+        <div class="entendido" id="entendido" hidden></div>
+        <button type="submit" id="guardar" disabled>Guardar</button>
+      </form>
 
-    <nav class="filtros" role="tablist">
-      <button class="filtro activo" data-filtro="pendientes" role="tab">Pendientes</button>
-      <button class="filtro" data-filtro="hechos" role="tab">Hechos</button>
-    </nav>
+      <nav class="filtros" role="tablist" aria-label="Mostrar">
+        <button class="filtro activo" data-filtro="pendientes" role="tab">Pendientes</button>
+        <button class="filtro" data-filtro="hechos" role="tab">Hechos</button>
+      </nav>
 
-    <section id="lista" class="lista"></section>
+      <section id="lista" class="lista"></section>
 
-    <footer class="pie">
-      <button id="permiso" class="permiso" hidden>Activar avisos</button>
-      <p id="estadoAvisos" class="estado-avisos"></p>
-      <p>Toca un pendiente para editarlo. Se guardan en este dispositivo.</p>
-    </footer>
+      <footer class="pie">
+        <button id="permiso" class="permiso" hidden>Activar avisos</button>
+        <p id="estadoAvisos" class="estado-avisos"></p>
+        <p>Toca un pendiente para editarlo. Se guardan en este dispositivo.</p>
+      </footer>
+    </section>
+
+    <!-- ================= CALENDARIO ================= -->
+    <section class="vista" id="vista-calendario" data-vista="calendario" hidden>
+      <header class="encabezado">
+        <h1>Calendario</h1>
+      </header>
+      <div class="mes">
+        <div class="mes-nav">
+          <button type="button" class="redondo" id="mesAnterior" aria-label="Mes anterior">‹</button>
+          <h2 id="mesTitulo"></h2>
+          <button type="button" class="redondo" id="mesSiguiente" aria-label="Mes siguiente">›</button>
+        </div>
+        <div class="semana" aria-hidden="true">
+          <span>L</span><span>M</span><span>M</span><span>J</span><span>V</span><span>S</span><span>D</span>
+        </div>
+        <div class="cuadricula" id="cuadricula" role="grid"></div>
+        <button type="button" class="ir-hoy" id="irHoy">Hoy</button>
+      </div>
+      <h3 class="grupo" id="diaTitulo"></h3>
+      <section id="listaDia" class="lista"></section>
+    </section>
+
+    <!-- ================= BUSCAR ================= -->
+    <section class="vista" id="vista-buscar" data-vista="buscar" hidden>
+      <header class="encabezado">
+        <h1>Buscar</h1>
+      </header>
+      <div class="busqueda">
+        <label for="busca" class="oculto">Buscar pendientes</label>
+        <input id="busca" type="search" placeholder="Busca por palabra, ej. Luis" autocomplete="off" enterkeyhint="search">
+      </div>
+      <nav class="chips" aria-label="Filtrar resultados">
+        <button type="button" class="chip activo" data-busca="todos">Todos</button>
+        <button type="button" class="chip" data-busca="pendientes">Pendientes</button>
+        <button type="button" class="chip" data-busca="hechos">Hechos</button>
+      </nav>
+      <p class="conteo" id="conteo" aria-live="polite"></p>
+      <section id="resultados" class="lista"></section>
+    </section>
+
+    <!-- ================= AJUSTES ================= -->
+    <section class="vista" id="vista-ajustes" data-vista="ajustes" hidden>
+      <header class="encabezado">
+        <h1>Ajustes</h1>
+      </header>
+
+      <h2 class="bloque-titulo">Apariencia</h2>
+      <div class="bloque">
+        <fieldset class="ajuste">
+          <legend>Tema</legend>
+          <div class="segmentos" data-ajuste="theme">
+            <label><input type="radio" name="theme" value="auto"><span>Automático</span></label>
+            <label><input type="radio" name="theme" value="claro"><span>Claro</span></label>
+            <label><input type="radio" name="theme" value="oscuro"><span>Oscuro</span></label>
+          </div>
+        </fieldset>
+
+        <fieldset class="ajuste">
+          <legend>Color de acento</legend>
+          <div class="muestras" data-ajuste="accentColor">
+            <label title="Verde"><input type="radio" name="accentColor" value="verde"><span class="muestra" data-c="verde"></span><span class="oculto">Verde</span></label>
+            <label title="Naranja"><input type="radio" name="accentColor" value="naranja"><span class="muestra" data-c="naranja"></span><span class="oculto">Naranja</span></label>
+            <label title="Azul"><input type="radio" name="accentColor" value="azul"><span class="muestra" data-c="azul"></span><span class="oculto">Azul</span></label>
+            <label title="Morado"><input type="radio" name="accentColor" value="morado"><span class="muestra" data-c="morado"></span><span class="oculto">Morado</span></label>
+            <label title="Rojo suave"><input type="radio" name="accentColor" value="rojo"><span class="muestra" data-c="rojo"></span><span class="oculto">Rojo suave</span></label>
+          </div>
+        </fieldset>
+
+        <fieldset class="ajuste">
+          <legend>Densidad</legend>
+          <div class="segmentos" data-ajuste="density">
+            <label><input type="radio" name="density" value="comoda"><span>Cómoda</span></label>
+            <label><input type="radio" name="density" value="compacta"><span>Compacta</span></label>
+          </div>
+        </fieldset>
+
+        <fieldset class="ajuste">
+          <legend>Tamaño de texto</legend>
+          <div class="segmentos" data-ajuste="textSize">
+            <label><input type="radio" name="textSize" value="normal"><span>Normal</span></label>
+            <label><input type="radio" name="textSize" value="grande"><span>Grande</span></label>
+          </div>
+        </fieldset>
+      </div>
+
+      <h2 class="bloque-titulo">Sonidos y avisos</h2>
+      <div class="bloque">
+        <label class="fila-ajuste">
+          <span>
+            <strong>Sonidos dentro de la app</strong>
+            <small>Al crear, completar, posponer o recibir un recordatorio con la app abierta.</small>
+          </span>
+          <input type="checkbox" class="interruptor" id="ajSonido">
+        </label>
+        <fieldset class="ajuste" id="estiloSonido">
+          <legend>Estilo de sonido</legend>
+          <div class="segmentos" data-ajuste="appSoundStyle">
+            <label><input type="radio" name="appSoundStyle" value="suave"><span>Suave</span></label>
+            <label><input type="radio" name="appSoundStyle" value="digital"><span>Digital</span></label>
+            <label><input type="radio" name="appSoundStyle" value="minimal"><span>Minimal</span></label>
+          </div>
+        </fieldset>
+
+        <label class="fila-ajuste" id="filaVibrar">
+          <span>
+            <strong>Vibrar con recordatorios</strong>
+            <small id="notaVibrar">Vibración corta y discreta.</small>
+          </span>
+          <input type="checkbox" class="interruptor" id="ajVibrar">
+        </label>
+
+        <div class="fila-ajuste">
+          <span>
+            <strong>Notificaciones</strong>
+            <small id="notaAvisos">Avisos aunque la app esté cerrada.</small>
+          </span>
+          <span class="estado" id="estadoNotif">—</span>
+        </div>
+        <button type="button" class="secundario-ancho" id="configurarAvisos">Configurar avisos</button>
+        <p class="nota">Los avisos con la app cerrada usan el sonido de notificación de tu teléfono; el navegador no permite cambiarlo. Los estilos de arriba suenan solo con la app abierta.</p>
+      </div>
+
+      <button type="button" class="restaurar" id="restaurar">Restaurar apariencia predeterminada</button>
+    </section>
   </main>
+
+  <nav class="tabbar" aria-label="Secciones">
+    <button type="button" class="tab activo" data-ir="hoy" aria-current="page">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11.5 12 5l8 6.5V20a1 1 0 0 1-1 1h-4.5v-6h-5v6H5a1 1 0 0 1-1-1z"/></svg>
+      <span>Hoy</span>
+    </button>
+    <button type="button" class="tab" data-ir="calendario">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>
+      <span>Calendario</span>
+    </button>
+    <button type="button" class="tab" data-ir="buscar">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg>
+      <span>Buscar</span>
+    </button>
+    <button type="button" class="tab" data-ir="ajustes">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>
+      <span>Ajustes</span>
+    </button>
+  </nav>
 
   <div class="aviso" id="aviso" role="status" hidden></div>
 
+  <dialog id="confirmar" class="hoja">
+    <form method="dialog">
+      <h2>¿Restaurar apariencia?</h2>
+      <p>Regresa tema, color, densidad, texto, sonidos y vibración a como venían. Tus pendientes y avisos no se tocan.</p>
+      <div class="fila fin">
+        <button value="no" class="secundario">Cancelar</button>
+        <button value="si" class="primario" id="confirmarSi">Restaurar</button>
+      </div>
+    </form>
+  </dialog>
+
   <script src="parser.js"></script>
   <script src="almacen.js"></script>
+  <script src="ajustes.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
