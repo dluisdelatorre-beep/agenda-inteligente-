@@ -123,7 +123,8 @@ with sync_playwright() as p:
     colores = {"ajustes: pestaña": pg.evaluate("getComputedStyle(document.querySelector('.tab.activo')).color"),
                "ajustes: interruptor": pg.evaluate("getComputedStyle(document.getElementById('ajSonido')).backgroundColor")}
     paso(13, "color de acento cambiado a morado")
-    tab(pg, "hoy"); colores["hoy: resumen"] = pg.evaluate("getComputedStyle(document.getElementById('resumen')).backgroundColor")
+    tab(pg, "hoy"); fondo_resumen = pg.evaluate("getComputedStyle(document.getElementById('resumen')).backgroundImage")
+    colores["hoy: resumen"] = MORADO if MORADO in fondo_resumen else fondo_resumen  # degradado con el acento
     colores["hoy: filtro activo"] = pg.evaluate("getComputedStyle(document.querySelector('.filtro.activo')).backgroundColor")
     pg.screenshot(path="/tmp/claude-0/-home-claude/664b7c3d-405b-5f8f-9031-07e69fa0cf95/scratchpad/s-hoy-morado.png")
     tab(pg, "calendario"); colores["calendario: día elegido"] = pg.evaluate("getComputedStyle(document.querySelector('.dia.sel')).backgroundColor")

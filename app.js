@@ -43,8 +43,7 @@
     const ahora = new Date();
     const f = ahora.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' });
     $('fechaHoy').textContent = f.charAt(0).toUpperCase() + f.slice(1);
-    const h = ahora.getHours();
-    $('saludo').textContent = h < 12 ? 'Buen día' : h < 19 ? 'Buenas tardes' : 'Buenas noches';
+
   }
 
   function pintarResumen() {
@@ -56,6 +55,16 @@
 
     const caja = $('resumen');
     caja.innerHTML = '';
+    const hora = ahora.getHours();
+    const hola = document.createElement('p');
+    hola.className = 'hola';
+    hola.textContent = '¡Hola! ' + (hora < 12 ? 'Buen día' : hora < 19 ? 'Buenas tardes' : 'Buenas noches');
+    const avatar = document.createElement('img');
+    avatar.className = 'asistente';
+    avatar.src = 'icons/asistente.png';
+    avatar.alt = '';
+    avatar.width = 88; avatar.height = 88;
+    caja.append(avatar, hola);
     const h2 = document.createElement('h2');
     h2.textContent = deHoy.length
       ? `Hoy tienes ${deHoy.length} ${deHoy.length === 1 ? 'pendiente' : 'pendientes'}`
@@ -78,7 +87,7 @@
     } else {
       const p = document.createElement('p');
       p.className = 'vacio';
-      p.textContent = 'No tienes nada agendado para hoy. Escribe abajo lo que necesites recordar.';
+      p.textContent = 'Estoy aquí para ayudarte a recordar lo importante. Hoy no tienes nada agendado.';
       caja.appendChild(p);
     }
     if (atrasados.length) {
@@ -595,6 +604,13 @@
   }
 
   document.querySelectorAll('.tab').forEach((t) => t.addEventListener('click', () => navegar(t.dataset.ir)));
+  $('tabNuevo').addEventListener('click', () => {
+    if (vistaActual !== 'hoy') navegar('hoy');
+    setTimeout(() => {
+      $('captura').scrollIntoView({ behavior: 'smooth', block: 'center' });
+      entrada.focus({ preventScroll: true });
+    }, vistaActual === 'hoy' ? 0 : 150);
+  });
   window.addEventListener('popstate', () => mostrarVista((history.state && history.state.vista) || 'hoy'));
 
   // =====================================================================

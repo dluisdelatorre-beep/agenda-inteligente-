@@ -42,12 +42,23 @@
         <button type="button" id="cerrarTip" class="cerrar" aria-label="Cerrar">×</button>
       </div>
 
-      <header class="encabezado">
-        <p class="fecha-hoy" id="fechaHoy"></p>
-        <h1 id="saludo">Buen día</h1>
+      <header class="marca-app">
+        <svg class="logo" viewBox="0 0 48 48" aria-hidden="true">
+          <defs><linearGradient id="oro" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f3d58a"/><stop offset=".55" stop-color="#d4a84a"/><stop offset="1" stop-color="#a87b26"/></linearGradient></defs>
+          <rect x="5" y="9" width="38" height="34" rx="9" fill="none" stroke="url(#oro)" stroke-width="4"/>
+          <path d="M5 19h38" stroke="url(#oro)" stroke-width="4"/>
+          <path d="M15 4v9M33 4v9" stroke="url(#oro)" stroke-width="4" stroke-linecap="round"/>
+          <path d="m16 30 6 6 11-12" fill="none" stroke="url(#oro)" stroke-width="4.2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <h1 class="nombre-app">Agenda<br>Inteligente</h1>
       </header>
 
       <section class="resumen" id="resumen" aria-live="polite"></section>
+
+      <div class="titulo-dia">
+        <h2>Hoy</h2>
+        <p class="fecha-hoy" id="fechaHoy"></p>
+      </div>
 
       <form class="captura" id="captura" autocomplete="off">
         <label for="entrada" class="oculto">Nuevo pendiente</label>
@@ -203,6 +214,9 @@
     <button type="button" class="tab" data-ir="calendario">
       <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>
       <span>Calendario</span>
+    </button>
+    <button type="button" class="tab-nuevo" id="tabNuevo" aria-label="Nuevo pendiente">
+      <span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></span>
     </button>
     <button type="button" class="tab" data-ir="buscar">
       <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg>
