@@ -836,11 +836,35 @@
     avisar('Apariencia restaurada');
   });
 
+  // Ventanita con el botón de la acción (la persona confirma: el marcador nunca se abre solo)
+  function mostrarHojaAccion(id) {
+    const p = pendientes.find((x) => x.id === id);
+    const dest = p && acciones.destino(p);
+    const dlg = $('hojaAccion');
+    if (!dest || typeof dlg.showModal !== 'function') return;
+    const tipo = acciones.TIPOS[p.actionType];
+    $('hojaAccionTitulo').textContent = p.texto;
+    $('hojaAccionDetalle').textContent = p.actionType === 'llamar'
+      ? `${p.contactName ? p.contactName + ' · ' : ''}${p.contactPhone}` : dest;
+    const ir = $('hojaAccionIr');
+    ir.textContent = tipo.boton;
+    ir.href = dest;
+    if (dest.startsWith('tel:')) { ir.removeAttribute('target'); ir.removeAttribute('rel'); }
+    else { ir.target = '_blank'; ir.rel = 'noopener noreferrer'; }
+    ir.onclick = () => dlg.close();
+    if (dlg.open) dlg.close();
+    dlg.showModal();
+  }
+
   // ---- Arranque ----
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('sw.js').catch(() => {});
     // El service worker avisa cuando cambió algo desde una notificación
-    navigator.serviceWorker.addEventListener('message', (e) => { if (e.data && e.data.tipo === 'recargar') recargar(); });
+    navigator.serviceWorker.addEventListener('message', async (e) => {
+      if (!e.data) return;
+      if (e.data.tipo === 'recargar') recargar();
+      if (e.data.tipo === 'accion') { await recargar(); mostrarHojaAccion(e.data.id); }
+    });
   }
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) return;
@@ -856,25 +880,11 @@
     estadoAvisos();
     // Atajo "Nuevo pendiente" del ícono: abre directo en el campo de captura
     if (new URLSearchParams(location.search).has('nuevo')) entrada.focus();
-    // Abierta desde el botón de acción de un aviso (cuando el navegador no abre el marcador directo)
+    // Abierta desde el botón de acción de un aviso
     const idAccion = new URLSearchParams(location.search).get('accion');
     if (idAccion) {
       history.replaceState(null, '', location.pathname);
-      const p = pendientes.find((x) => x.id === idAccion);
-      const dest = p && acciones.destino(p);
-      const dlg = $('hojaAccion');
-      if (dest && typeof dlg.showModal === 'function') {
-        const tipo = acciones.TIPOS[p.actionType];
-        $('hojaAccionTitulo').textContent = p.texto;
-        $('hojaAccionDetalle').textContent = p.actionType === 'llamar'
-          ? `${p.contactName ? p.contactName + ' · ' : ''}${p.contactPhone}` : dest;
-        const ir = $('hojaAccionIr');
-        ir.textContent = tipo.boton;
-        ir.href = dest;
-        if (!dest.startsWith('tel:')) { ir.target = '_blank'; ir.rel = 'noopener noreferrer'; }
-        ir.onclick = () => dlg.close();
-        dlg.showModal();
-      }
+      mostrarHojaAccion(idAccion);
     }
   });
   setInterval(() => { revisarRecordatorios(); pintarResumen(); }, 30000);

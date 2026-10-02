@@ -58,6 +58,14 @@ with sync_playwright() as p:
     paso("respaldo del aviso: abre la app con 'Llamar ahora' listo (la persona confirma la llamada)")
     pg.click("#hojaAccion button[value=no]")
     assert "accion=" not in pg.url
+    # Con la app ya abierta: el aviso le avisa a la app y ella muestra el botón (no abre una pestaña con tel:)
+    pg.evaluate("navigator.serviceWorker.ready")
+    sw = ctx.service_workers[0]
+    sw.evaluate(f"self.clients.matchAll({{type:'window'}}).then(cs => cs[0].postMessage({{tipo:'accion', id:'{idl}'}}))")
+    pg.wait_for_selector("#hojaAccion[open]")
+    assert pg.get_attribute("#hojaAccionIr", "href") == "tel:9981234567" and pg.get_attribute("#hojaAccionIr", "target") is None
+    paso("app abierta: el botón del aviso muestra 'Llamar ahora' en la app, sin abrir una pestaña de Chrome")
+    pg.click("#hojaAccion button[value=no]")
     rec2 = pg.evaluate(f"almacen.leer().then(l => l.find(x => x.id === '{idl}'))")
     assert rec2["contactPhone"] == "9981234567" and not rec2["hecho"]
     paso("al regresar a la app, el pendiente sigue igual y sincronizado")

@@ -4,7 +4,7 @@
 // 3) Atiende los botones del aviso: "Posponer 10 min" y "Hecho".
 importScripts('almacen.js', 'acciones.js');
 
-const CACHE = 'agenda-v8';
+const CACHE = 'agenda-v9';
 const POSPONER_MIN = 10;
 const ARCHIVOS = [
   '/', '/index.html', '/styles.css', '/app.js', '/parser.js', '/almacen.js', '/ajustes.js', '/acciones.js',
@@ -89,8 +89,14 @@ self.addEventListener('notificationclick', (e) => {
       const lista = await almacen.leer();
       const destino = acciones.destino(lista.find((x) => x.id === id));
       if (destino && destino.startsWith('tel:')) {
-        try { await self.clients.openWindow(destino); return; } catch {}
-        // Si el navegador no deja abrir el marcador directo, abrimos la app con el botón listo.
+        // Desde un aviso, Chrome abre "tel:" como página en lugar del marcador.
+        // Por eso se abre la Agenda con el botón "Llamar ahora" listo; al tocarlo se abre el marcador.
+        const abiertas = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+        if (abiertas.length) {
+          await abiertas[0].focus();
+          abiertas[0].postMessage({ tipo: 'accion', id });
+          return;
+        }
         return self.clients.openWindow('/?accion=' + encodeURIComponent(id));
       }
       if (destino) return self.clients.openWindow(destino);
