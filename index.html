@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="es-MX">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Agenda Inteligente</title>
+  <meta name="description" content="Escribe como hablas y la agenda entiende el día y la hora.">
+  <meta name="theme-color" content="#0f3d3e">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="app">
+    <header class="encabezado">
+      <p class="fecha-hoy" id="fechaHoy"></p>
+      <h1 id="saludo">Buen día</h1>
+    </header>
+
+    <section class="resumen" id="resumen" aria-live="polite"></section>
+
+    <form class="captura" id="captura" autocomplete="off">
+      <label for="entrada" class="oculto">Nuevo pendiente</label>
+      <input id="entrada" type="text" placeholder="Ej. mañana a las 5 llamar a Germán" enterkeyhint="done">
+      <div class="entendido" id="entendido" hidden></div>
+      <button type="submit" id="guardar" disabled>Guardar</button>
+    </form>
+
+    <nav class="filtros" role="tablist">
+      <button class="filtro activo" data-filtro="pendientes" role="tab">Pendientes</button>
+      <button class="filtro" data-filtro="hechos" role="tab">Hechos</button>
+    </nav>
+
+    <section id="lista" class="lista"></section>
+
+    <footer class="pie">
+      <button id="permiso" class="permiso" hidden>Activar avisos</button>
+      <p>Tus pendientes se guardan en este dispositivo.</p>
+    </footer>
+  </main>
+
+  <div class="aviso" id="aviso" role="status" hidden></div>
+
+  <script src="parser.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
