@@ -8,24 +8,77 @@
   "start_url": "/?fuente=app",
   "scope": "/",
   "display": "standalone",
-  "display_override": ["standalone", "minimal-ui"],
+  "display_override": [
+    "standalone",
+    "minimal-ui"
+  ],
   "orientation": "portrait",
   "background_color": "#f6f3ec",
   "theme_color": "#0f3d3e",
-  "categories": ["productivity", "utilities"],
+  "categories": [
+    "productivity",
+    "utilities"
+  ],
   "icons": [
-    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
-    { "src": "icons/icon-maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
-    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
-    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-maskable-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
   ],
   "screenshots": [
-    { "src": "screenshots/movil-resumen.png", "sizes": "780x1688", "type": "image/png", "form_factor": "narrow", "label": "Resumen del día al abrir" },
-    { "src": "screenshots/movil-captura.png", "sizes": "780x1688", "type": "image/png", "form_factor": "narrow", "label": "Escribe como hablas" },
-    { "src": "screenshots/escritorio.png", "sizes": "1440x900", "type": "image/png", "form_factor": "wide", "label": "Agenda en escritorio" }
+    {
+      "src": "screenshots/movil-resumen.png",
+      "sizes": "780x1688",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Resumen del día al abrir"
+    },
+    {
+      "src": "screenshots/movil-captura.png",
+      "sizes": "780x1688",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Escribe como hablas"
+    },
+    {
+      "src": "screenshots/escritorio.png",
+      "sizes": "1440x900",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Agenda en escritorio"
+    }
   ],
   "shortcuts": [
-    { "name": "Nuevo pendiente", "short_name": "Nuevo", "url": "/?nuevo=1", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] }
+    {
+      "name": "Nuevo pendiente",
+      "short_name": "Nuevo",
+      "url": "/?nuevo=1",
+      "icons": [
+        {
+          "src": "icons/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
   ]
 }
