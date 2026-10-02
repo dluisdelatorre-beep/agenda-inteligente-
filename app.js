@@ -1,17 +1,20 @@
 // Agenda Inteligente — lógica de la pantalla.
-// Los pendientes viven en localStorage de este dispositivo.
+// Los pendientes viven en este dispositivo (almacen.js). Si se activan los avisos,
+// también se manda una copia mínima al servidor para que avise con la app cerrada.
 (function () {
-  const CLAVE = 'agenda-inteligente:v1';
   const $ = (id) => document.getElementById(id);
-  let pendientes = cargar();
+  const POSPONER_MIN = 10;
+  let pendientes = [];
   let filtro = 'pendientes';
   let borrador = null;
+  let editando = null; // id del pendiente que se está editando
 
-  function cargar() {
-    try { return JSON.parse(localStorage.getItem(CLAVE)) || []; } catch { return []; }
+  async function recargar() {
+    pendientes = await almacen.leer();
+    pintar();
   }
-  function guardar() {
-    try { localStorage.setItem(CLAVE, JSON.stringify(pendientes)); } catch {}
+  async function guardar() {
+    await almacen.guardar(pendientes);
   }
 
   // ---- Formatos ----
@@ -28,11 +31,17 @@
     dia = dia.charAt(0).toUpperCase() + dia.slice(1);
     return conHora ? `${dia} · ${fmtHora(d)}` : dia;
   }
+  // Date -> valor para <input type="datetime-local"> en hora local
+  function aLocal(d) {
+    const z = (n) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())}T${z(d.getHours())}:${z(d.getMinutes())}`;
+  }
 
   // ---- Encabezado y resumen del día (lo primero que se ve al abrir) ----
   function pintarEncabezado() {
     const ahora = new Date();
-    $('fechaHoy').textContent = ahora.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' });
+    const f = ahora.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' });
+    $('fechaHoy').textContent = f.charAt(0).toUpperCase() + f.slice(1);
     const h = ahora.getHours();
     $('saludo').textContent = h < 12 ? 'Buen día' : h < 19 ? 'Buenas tardes' : 'Buenas noches';
   }
@@ -123,44 +132,124 @@
           lista.appendChild(h);
           grupoActual = g;
         }
-        lista.appendChild(tarjeta(p, ahora));
+        lista.appendChild(p.id === editando ? editor(p) : tarjeta(p, ahora));
       });
+  }
+
+  function boton(clase, texto, etiqueta, accion) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = clase;
+    b.textContent = texto;
+    if (etiqueta) b.setAttribute('aria-label', etiqueta);
+    b.onclick = accion;
+    return b;
   }
 
   function tarjeta(p, ahora) {
     const div = document.createElement('div');
-    div.className = 'item' + (p.hecho ? ' hecho' : '') + (!p.hecho && p.cuando && new Date(p.cuando) < ahora ? ' vencido' : '');
+    const vencido = !p.hecho && p.cuando && new Date(p.cuando) < ahora;
+    div.className = 'item' + (p.hecho ? ' hecho' : '') + (vencido ? ' vencido' : '');
 
-    const check = document.createElement('button');
-    check.className = 'check';
-    check.setAttribute('aria-label', p.hecho ? 'Marcar como pendiente' : 'Marcar como hecho');
-    check.onclick = () => { p.hecho = !p.hecho; p.hechoEn = p.hecho ? new Date().toISOString() : null; guardar(); pintar(); };
+    const check = boton('check', '', p.hecho ? 'Marcar como pendiente' : 'Marcar como hecho', async () => {
+      p.hecho = !p.hecho;
+      p.hechoEn = p.hecho ? new Date().toISOString() : null;
+      if (!p.hecho) p.avisado = false;
+      await guardar(); pintar();
+      almacen.sincronizar(p);
+    });
 
-    const cuerpo = document.createElement('div');
+    const cuerpo = document.createElement('button');
+    cuerpo.type = 'button';
     cuerpo.className = 'cuerpo';
-    const texto = document.createElement('p');
+    cuerpo.setAttribute('aria-label', 'Editar: ' + p.texto);
+    cuerpo.onclick = () => { if (!p.hecho) { editando = p.id; pintarLista(); } };
+    const texto = document.createElement('span');
     texto.className = 'texto';
     texto.textContent = p.texto;
     cuerpo.appendChild(texto);
     if (p.cuando) {
-      const c = document.createElement('p');
+      const c = document.createElement('span');
       c.className = 'cuando';
       c.textContent = describir(p.cuando, p.conHora);
       cuerpo.appendChild(c);
     }
 
-    const borrar = document.createElement('button');
-    borrar.className = 'borrar';
-    borrar.setAttribute('aria-label', 'Borrar');
-    borrar.textContent = '×';
-    borrar.onclick = () => {
+    const acciones = document.createElement('div');
+    acciones.className = 'acciones';
+    if (vencido || (p.avisado && !p.hecho)) {
+      acciones.appendChild(boton('posponer', '+10 min', 'Posponer 10 minutos', () => posponer(p.id)));
+    }
+    acciones.appendChild(boton('borrar', '×', 'Borrar', async () => {
       pendientes = pendientes.filter((x) => x.id !== p.id);
-      guardar(); pintar();
+      await guardar(); pintar();
+      almacen.sincronizar({ ...p, hecho: true }); // en el servidor, borrar = ya no avisar
       avisar('Pendiente borrado');
-    };
+    }));
 
-    div.append(check, cuerpo, borrar);
+    div.append(check, cuerpo, acciones);
     return div;
+  }
+
+  // ---- Editar un pendiente ----
+  function editor(p) {
+    const form = document.createElement('form');
+    form.className = 'item editor';
+
+    const t = document.createElement('input');
+    t.type = 'text';
+    t.value = p.texto;
+    t.setAttribute('aria-label', 'Texto del pendiente');
+    t.required = true;
+
+    const filaFecha = document.createElement('div');
+    filaFecha.className = 'fila';
+    const f = document.createElement('input');
+    f.type = 'datetime-local';
+    f.setAttribute('aria-label', 'Fecha y hora');
+    if (p.cuando) f.value = aLocal(new Date(p.cuando));
+    const quitar = boton('quitar', 'Sin fecha', null, () => { f.value = ''; });
+    filaFecha.append(f, quitar);
+
+    const botones = document.createElement('div');
+    botones.className = 'fila fin';
+    const cancelar = boton('secundario', 'Cancelar', null, () => { editando = null; pintarLista(); });
+    const ok = document.createElement('button');
+    ok.type = 'submit';
+    ok.className = 'primario';
+    ok.textContent = 'Guardar cambios';
+    botones.append(cancelar, ok);
+
+    form.append(t, filaFecha, botones);
+    form.onsubmit = async (e) => {
+      e.preventDefault();
+      const texto = t.value.trim();
+      if (!texto) return;
+      p.texto = texto;
+      if (f.value) {
+        p.cuando = new Date(f.value).toISOString();
+        p.conHora = true;
+      } else {
+        p.cuando = null;
+        p.conHora = false;
+      }
+      p.avisado = false;
+      editando = null;
+      await guardar(); pintar();
+      almacen.sincronizar(p);
+      avisar('Cambios guardados');
+    };
+    setTimeout(() => t.focus(), 0);
+    return form;
+  }
+
+  async function posponer(id) {
+    const p = await almacen.posponer(id, POSPONER_MIN);
+    await recargar();
+    if (p) {
+      almacen.sincronizar(p);
+      avisar(`Te recuerdo a las ${fmtHora(new Date(p.cuando))}`);
+    }
   }
 
   function pintar() { pintarEncabezado(); pintarResumen(); pintarLista(); }
@@ -180,10 +269,10 @@
     caja.append('Entendí: ', que, ' — ', borrador.cuando ? describir(borrador.cuando, borrador.conHora) : 'sin fecha');
   });
 
-  $('captura').addEventListener('submit', (e) => {
+  $('captura').addEventListener('submit', async (e) => {
     e.preventDefault();
     if (!borrador) return;
-    pendientes.push({
+    const nuevo = {
       id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
       texto: borrador.texto,
       cuando: borrador.cuando ? borrador.cuando.toISOString() : null,
@@ -191,13 +280,15 @@
       hecho: false,
       avisado: false,
       creado: new Date().toISOString(),
-    });
-    guardar();
+    };
+    pendientes.push(nuevo);
+    await guardar();
     entrada.value = '';
     entrada.dispatchEvent(new Event('input'));
     filtro = 'pendientes';
     marcarFiltro();
     pintar();
+    almacen.sincronizar(nuevo);
     avisar('Guardado');
   });
 
@@ -206,51 +297,165 @@
     document.querySelectorAll('.filtro').forEach((b) => b.classList.toggle('activo', b.dataset.filtro === filtro));
   }
   document.querySelectorAll('.filtro').forEach((b) => b.addEventListener('click', () => {
-    filtro = b.dataset.filtro; marcarFiltro(); pintarLista();
+    filtro = b.dataset.filtro; editando = null; marcarFiltro(); pintarLista();
   }));
 
-  // ---- Avisos en pantalla y notificaciones (mientras la app esté abierta) ----
+  // ---- Aviso en pantalla (con botón opcional) ----
   let temporizador;
-  function avisar(msg) {
+  function avisar(msg, accion) {
     const a = $('aviso');
-    a.textContent = msg;
+    a.innerHTML = '';
+    const t = document.createElement('span');
+    t.textContent = msg;
+    a.appendChild(t);
+    if (accion) a.appendChild(boton('accion', accion.texto, null, () => { a.hidden = true; accion.fn(); }));
     a.hidden = false;
     clearTimeout(temporizador);
-    temporizador = setTimeout(() => { a.hidden = true; }, 2600);
+    temporizador = setTimeout(() => { a.hidden = true; }, accion ? 9000 : 2600);
   }
 
-  const puedeNotificar = 'Notification' in window;
-  function revisarPermiso() {
-    $('permiso').hidden = !puedeNotificar || Notification.permission !== 'default';
-  }
-  $('permiso').addEventListener('click', async () => {
-    await Notification.requestPermission();
-    revisarPermiso();
-  });
-
-  function revisarRecordatorios() {
+  // ---- Recordatorios con la app abierta ----
+  async function revisarRecordatorios() {
     const ahora = new Date();
     let cambio = false;
-    pendientes.forEach((p) => {
-      if (p.hecho || p.avisado || !p.cuando || !p.conHora) return;
+    for (const p of pendientes) {
+      if (p.hecho || p.avisado || !p.cuando || !p.conHora) continue;
       if (new Date(p.cuando) <= ahora) {
         p.avisado = true;
         cambio = true;
-        avisar('⏰ ' + p.texto);
-        if (puedeNotificar && Notification.permission === 'granted') {
-          try { new Notification('Agenda Inteligente', { body: p.texto, icon: 'icon.svg' }); } catch {}
-        }
+        avisar('⏰ ' + p.texto, { texto: `+${POSPONER_MIN} min`, fn: () => posponer(p.id) });
+        mostrarNotificacion(p);
       }
-    });
-    if (cambio) { guardar(); pintar(); }
+    }
+    if (cambio) { await guardar(); pintar(); }
   }
+
+  // Misma etiqueta (tag) que usa el servidor: si llegan los dos, el teléfono muestra uno solo.
+  async function mostrarNotificacion(p) {
+    if (!('Notification' in window) || Notification.permission !== 'granted') return;
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      await reg.showNotification('Agenda Inteligente', {
+        body: p.texto,
+        tag: p.id,
+        icon: 'icons/icon-192.png',
+        badge: 'icons/badge-96.png',
+        data: { id: p.id },
+        actions: [{ action: 'posponer', title: `Posponer ${POSPONER_MIN} min` }, { action: 'hecho', title: 'Hecho' }],
+      });
+    } catch {}
+  }
+
+  // ---- Avisos con la app cerrada (Web Push) ----
+  const esIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const instalada = matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+  const hayPush = 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+
+  function b64aBytes(b64) {
+    const relleno = '='.repeat((4 - (b64.length % 4)) % 4);
+    const crudo = atob((b64 + relleno).replace(/-/g, '+').replace(/_/g, '/'));
+    return Uint8Array.from(crudo, (c) => c.charCodeAt(0));
+  }
+
+  let servidorSinConfigurar = false;
+
+  async function estadoAvisos() {
+    const el = $('estadoAvisos');
+    const btn = $('permiso');
+    btn.hidden = true;
+    if (!hayPush) {
+      el.textContent = esIOS && !instalada
+        ? 'En iPhone los avisos llegan solo si instalas la app en tu pantalla de inicio.'
+        : 'Este navegador no permite avisos.';
+      return;
+    }
+    if (Notification.permission === 'denied') {
+      el.textContent = 'Bloqueaste los avisos. Actívalos en los ajustes del navegador para esta página.';
+      return;
+    }
+    if (servidorSinConfigurar && Notification.permission === 'granted') {
+      el.textContent = 'Te aviso mientras la app esté abierta. Los avisos con la app cerrada se activan cuando el servidor quede configurado.';
+      return;
+    }
+    const sub = await almacen.suscripcion();
+    if (sub && Notification.permission === 'granted') {
+      el.textContent = 'Avisos activos: te llegan aunque la app esté cerrada.';
+      return;
+    }
+    el.textContent = '';
+    btn.hidden = false;
+  }
+
+  async function activarAvisos() {
+    const btn = $('permiso');
+    btn.disabled = true;
+    try {
+      const permiso = await Notification.requestPermission();
+      if (permiso !== 'granted') return;
+      const r = await fetch('/api/vapid');
+      if (!r.ok) {
+        servidorSinConfigurar = true;
+        return;
+      }
+      const { publicKey } = await r.json();
+      const reg = await navigator.serviceWorker.ready;
+      const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64aBytes(publicKey) });
+      const ok = await fetch('/api/suscripcion', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subscription: sub.toJSON() }),
+      });
+      if (!ok.ok) throw new Error('suscripción');
+      await almacen.sincronizar(pendientes.filter((p) => !p.hecho && p.conHora));
+      avisar('Listo, te aviso aunque cierres la app');
+    } catch {
+      avisar('No se pudieron activar los avisos. Intenta de nuevo.');
+    } finally {
+      btn.disabled = false;
+      estadoAvisos();
+    }
+  }
+  $('permiso').addEventListener('click', activarAvisos);
+
+  // ---- Instalar la app ----
+  let promptInstalar = null;
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    promptInstalar = e;
+    $('instalar').hidden = false;
+  });
+  $('instalarBtn').addEventListener('click', async () => {
+    if (!promptInstalar) return;
+    promptInstalar.prompt();
+    const { outcome } = await promptInstalar.userChoice;
+    promptInstalar = null;
+    $('instalar').hidden = true;
+    if (outcome === 'accepted') avisar('Instalando…');
+  });
+  window.addEventListener('appinstalled', () => { $('instalar').hidden = true; });
+  if (esIOS && !instalada) {
+    let cerrado = false;
+    try { cerrado = sessionStorage.getItem('tip-ios') === '1'; } catch {}
+    $('tipIOS').hidden = cerrado;
+  }
+  $('cerrarTip').addEventListener('click', () => {
+    $('tipIOS').hidden = true;
+    try { sessionStorage.setItem('tip-ios', '1'); } catch {}
+  });
 
   // ---- Arranque ----
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('sw.js').catch(() => {});
+    // El service worker avisa cuando cambió algo desde una notificación
+    navigator.serviceWorker.addEventListener('message', (e) => { if (e.data && e.data.tipo === 'recargar') recargar(); });
   }
-  revisarPermiso();
-  pintar();
-  revisarRecordatorios();
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) recargar(); });
+
+  recargar().then(() => {
+    revisarRecordatorios();
+    estadoAvisos();
+    // Atajo "Nuevo pendiente" del ícono: abre directo en el campo de captura
+    if (new URLSearchParams(location.search).has('nuevo')) entrada.focus();
+  });
   setInterval(() => { revisarRecordatorios(); pintarResumen(); }, 30000);
 })();

@@ -1,0 +1,17 @@
+{
+  "name": "agenda-inteligente",
+  "version": "3.0.0",
+  "private": true,
+  "description": "Agenda que entiende lenguaje natural, con avisos Web Push. Proyecto KNOXIA de Francisco Acevedo.",
+  "scripts": {
+    "test": "node test/parser.test.js && node test/servidor.test.js"
+  },
+  "engines": { "node": ">=20" },
+  "dependencies": {
+    "@neondatabase/serverless": "^1.2.0",
+    "web-push": "^3.6.7"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.3.0"
+  }
+}

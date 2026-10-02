@@ -4,27 +4,58 @@ Proyecto práctico de KNOXIA (módulo construye-04) de Francisco Acevedo.
 
 Escribes como hablas ("mañana a las 5 llamar a Germán") y la agenda entiende el día y la hora, te muestra lo que entendió y lo guarda. Al abrirla, lo primero que ves es el resumen de tu día.
 
+En producción: https://agenda-inteligente-acevedo.vercel.app
+
 ## Qué hace
 
 - Captura en lenguaje natural: hoy, mañana, pasado mañana, días de la semana, "15 de octubre", "el 20", "a las 5", "4:30 pm", "de la noche", "al mediodía", "en 2 horas", "en media hora".
-- Muestra lo entendido antes de guardar.
 - Resumen del día al abrir, con aviso de atrasados.
-- Agrupa: Atrasados, Hoy, Mañana, Más adelante, Sin fecha.
-- Marcar como hecho y borrar.
-- Avisos mientras la app está abierta (notificación del navegador si se da permiso).
-- Instalable en el teléfono (PWA) y abre sin señal.
-
-## Pendiente para la siguiente versión
-
-- Avisos con la app cerrada (requiere backend con Web Push).
-- Cuentas de usuario y sincronizar entre dispositivos (hoy se guarda en el propio teléfono).
+- Editar: toca un pendiente para cambiar el texto, la fecha y la hora, o quitarle la fecha.
+- Posponer 10 minutos: desde la tarjeta vencida, desde el aviso en pantalla o desde el botón de la notificación.
+- Avisos con la app cerrada (Web Push) con botones "Posponer 10 min" y "Hecho" que funcionan sin abrir la app.
+- Instalable: botón "Instalar" en Android y escritorio, instrucciones para iPhone, íconos para cada sistema y capturas para la ficha de instalación.
+- Abre sin señal (service worker).
 
 ## Cómo está hecha
 
-Sitio estático sin paso de compilación: `index.html`, `styles.css`, `app.js` y `parser.js` (el intérprete de frases). Vercel la publica tal cual.
+| Pieza | Qué hace |
+|---|---|
+| `index.html`, `styles.css`, `app.js` | La pantalla |
+| `parser.js` | Entiende las frases en español |
+| `almacen.js` | Guarda los pendientes en el teléfono (IndexedDB), compartido con el service worker |
+| `sw.js` | Service worker: abre sin señal, recibe los avisos y atiende sus botones |
+| `api/vapid.js` | Da la llave pública para suscribirse a los avisos |
+| `api/suscripcion.js` | Registra o da de baja un teléfono |
+| `api/recordatorios.js` | Guarda qué avisar y cuándo |
+| `api/enviar.js` | Despacha los avisos que ya tocan (lo llama un reloj cada minuto) |
+| `lib/servidor.js` | Lógica del servidor de avisos (Neon + Web Push) |
 
-Probar el intérprete:
+Los pendientes viven en el teléfono. Al servidor solo se manda lo mínimo para avisar: el texto, la hora y a qué teléfono.
+
+## Configurar los avisos con la app cerrada
+
+Sin esto la app funciona igual y avisa mientras está abierta; el botón "Activar avisos" lo explica.
+
+1. Base de datos en Neon. Las tablas se crean solas la primera vez.
+2. Llaves de Web Push: `npx web-push generate-vapid-keys`
+3. Variables de entorno en el proyecto de Vercel:
+   - `DATABASE_URL` (Neon)
+   - `VAPID_PUBLIC_KEY` y `VAPID_PRIVATE_KEY`
+   - `VAPID_SUBJECT` (ej. `mailto:luis@vforge.site`)
+   - `CRON_SECRET` (una clave larga al azar)
+4. Un reloj que llame a `/api/enviar` cada minuto. En el plan Hobby de Vercel los crons no corren cada minuto, así que va en el servidor de la casa:
+
+   ```
+   * * * * * curl -fsS -H "Authorization: Bearer $CRON_SECRET" https://agenda-inteligente-acevedo.vercel.app/api/enviar >/dev/null
+   ```
+
+En iPhone los avisos solo llegan si la app está instalada en la pantalla de inicio (iOS 16.4 o más reciente).
+
+## Pruebas
 
 ```
-node test/parser.test.js
+npm install
+npm test
 ```
+
+Prueban el intérprete de frases y el servidor de avisos contra un Postgres real en memoria, con llaves VAPID reales.
