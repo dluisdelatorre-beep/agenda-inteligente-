@@ -165,7 +165,7 @@ with sync_playwright() as p:
     pg.click("#restaurar"); pg.wait_for_selector("#confirmar[open]"); pg.click("#confirmarSi"); pg.wait_for_timeout(200)
     a = pg.evaluate("ajustes.actuales")
     assert a == {"theme": "auto", "accentColor": "verde", "density": "comoda", "textSize": "normal",
-                 "appSoundEnabled": True, "appSoundStyle": "suave", "vibrationEnabled": True}, a
+                 "appSoundEnabled": True, "appSoundStyle": "suave", "reminderTone": "suave", "vibrationEnabled": True}, a
     paso(19, "pide confirmación (cancelar no cambia nada) y restaura tema, color, densidad, texto, sonido y vibración")
     assert pg.evaluate("almacen.leer().then(l => JSON.stringify(l))") == pend_antes
     assert pg.evaluate("window.__sync.length") == sync_antes

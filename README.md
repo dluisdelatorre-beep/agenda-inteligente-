@@ -20,6 +20,9 @@ En producción: https://agenda-inteligente-acevedo.vercel.app
 - Buscar instantáneo que ignora mayúsculas y acentos, con filtros Todos, Pendientes y Hechos.
 - Ajustes: tema (automático, claro, oscuro), 5 colores de acento, densidad, tamaño de texto, sonidos dentro de la app (Suave, Digital, Minimal o sin sonido), vibración, estado de los avisos y restaurar apariencia. Las preferencias se guardan aparte de los pendientes.
 - Acciones del recordatorio: llamar (con contacto o teléfono), abrir pago, entrar a reunión (Meet, Zoom, Teams), cómo llegar (dirección o mapa) y abrir enlace. Se sugieren solas según el texto y se pueden cambiar; nunca impiden guardar. Los avisos muestran la acción principal. No se guardan contraseñas, NIP, CVV, tokens ni credenciales.
+- Tono del recordatorio: lista de tonos con ▶ para escucharlos (Suave, Digital, Minimal, Campana, Marimba, Alerta) o una canción propia con "Elegir de mi música" (se guarda en el teléfono, suena hasta 12 s con la app abierta). Con la app cerrada suena el tono de notificaciones del teléfono; "Sonido con la app cerrada" explica paso a paso dónde cambiarlo.
+- Categorías (Trabajo, Personal, Salud, Pagos, Casa, Otros) y prioridades (Alta, Normal, Baja). Se sugieren por la frase ("urgente", "importante", "sin prisa", "pagar", "dentista"…) y se cambian en el editor. Buscar filtra por categoría.
+- Estadísticas (botón 📊 en Hoy): completados en 7 días, % de cumplimiento, pendientes y atrasados, racha de días, gráfica por día, por categoría y por prioridad.
 
 ## Cómo está hecha
 
@@ -73,4 +76,6 @@ Pruebas de pantalla del sprint Calendario + Buscar + Ajustes (20 pruebas, en Chr
 python3 -m http.server 8765 &
 python3 test/sprint-calendario-buscar-ajustes.py
 python3 test/acciones-pantalla.py
+python3 test/tonos-pantalla.py
+python3 test/categorias-pantalla.py
 ```

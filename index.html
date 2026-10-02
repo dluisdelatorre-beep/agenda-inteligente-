@@ -51,6 +51,7 @@
           <path d="m16 30 6 6 11-12" fill="none" stroke="url(#oro)" stroke-width="4.2" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
         <h1 class="nombre-app">Agenda<br>Inteligente</h1>
+        <button type="button" class="ir-stats" id="verEstadisticas" aria-label="Ver estadísticas">📊<span>Estadísticas</span></button>
       </header>
 
       <section class="resumen" id="resumen" aria-live="polite"></section>
@@ -116,8 +117,25 @@
         <button type="button" class="chip" data-busca="pendientes">Pendientes</button>
         <button type="button" class="chip" data-busca="hechos">Hechos</button>
       </nav>
+      <nav class="chips chips-cat" id="chipsCat" aria-label="Filtrar por categoría"></nav>
       <p class="conteo" id="conteo" aria-live="polite"></p>
       <section id="resultados" class="lista"></section>
+    </section>
+
+    <!-- ================= ESTADÍSTICAS ================= -->
+    <section class="vista" id="vista-estadisticas" data-vista="estadisticas" hidden>
+      <header class="encabezado">
+        <button type="button" class="volver" id="volverHoy" aria-label="Regresar a Hoy">‹ Hoy</button>
+        <h1>Estadísticas</h1>
+      </header>
+      <div class="stats-tiles" id="statsTiles"></div>
+      <h2 class="bloque-titulo">Completados · últimos 7 días</h2>
+      <div class="bloque"><div class="barras-dia" id="statsDias" role="img"></div></div>
+      <h2 class="bloque-titulo">Por categoría</h2>
+      <div class="bloque" id="statsCat"></div>
+      <h2 class="bloque-titulo">Pendientes por prioridad</h2>
+      <div class="bloque stats-prio" id="statsPrio"></div>
+      <p class="nota" id="statsNota"></p>
     </section>
 
     <!-- ================= AJUSTES ================= -->
@@ -183,6 +201,14 @@
           </div>
         </fieldset>
 
+        <fieldset class="ajuste" id="tonoRecordatorio">
+          <legend>Tono del recordatorio</legend>
+          <div class="lista-tonos" id="listaTonos" role="radiogroup" aria-label="Tono del recordatorio"></div>
+          <button type="button" class="secundario-ancho" id="elegirCancion">🎵 Elegir de mi música</button>
+          <input type="file" id="archivoTono" accept="audio/*" hidden>
+          <p class="nota">Toca ▶ para escucharlo. Suena cuando llega un recordatorio con la app abierta (una canción suena hasta 12 segundos).</p>
+        </fieldset>
+
         <label class="fila-ajuste" id="filaVibrar">
           <span>
             <strong>Vibrar con recordatorios</strong>
@@ -199,7 +225,8 @@
           <span class="estado" id="estadoNotif">—</span>
         </div>
         <button type="button" class="secundario-ancho" id="configurarAvisos">Configurar avisos</button>
-        <p class="nota">Los avisos con la app cerrada usan el sonido de notificación de tu teléfono; el navegador no permite cambiarlo. Los estilos de arriba suenan solo con la app abierta.</p>
+        <button type="button" class="secundario-ancho" id="sonidoCerrada">🔔 Sonido con la app cerrada</button>
+        <p class="nota">Con la app cerrada, el aviso suena con el tono de notificaciones que elijas en tu teléfono. Te decimos cómo cambiarlo.</p>
       </div>
 
       <button type="button" class="restaurar" id="restaurar">Restaurar apariencia predeterminada</button>
@@ -241,6 +268,18 @@
     </form>
   </dialog>
 
+  <dialog id="guiaSonido" class="hoja">
+    <form method="dialog">
+      <h2>Sonido con la app cerrada</h2>
+      <p>Cuando la app está cerrada, quien hace sonar el aviso es tu teléfono. Ahí puedes elegir cualquier tono o una canción tuya:</p>
+      <ol class="pasos-guia" id="pasosGuia"></ol>
+      <p class="nota" id="notaGuia"></p>
+      <div class="fila fin">
+        <button value="ok" class="primario">Entendido</button>
+      </div>
+    </form>
+  </dialog>
+
   <dialog id="hojaAccion" class="hoja">
     <form method="dialog">
       <h2 id="hojaAccionTitulo"></h2>
@@ -256,6 +295,7 @@
   <script src="almacen.js"></script>
   <script src="ajustes.js"></script>
   <script src="acciones.js"></script>
+  <script src="categorias.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

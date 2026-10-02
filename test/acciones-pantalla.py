@@ -28,7 +28,7 @@ with sync_playwright() as p:
     paso("sin número, la tarjeta muestra '📞 Agregar teléfono' (no se queda sin pista)")
     pg.click("#aviso >> text=Asociar contacto"); pg.wait_for_selector("#lista .editor")
     ed = "#lista .editor"
-    assert pg.eval_on_selector(f"{ed} select", "s => s.value") == "llamar"
+    assert pg.eval_on_selector(f"{ed} select[aria-label='Tipo de acción']", "s => s.value") == "llamar"
     assert pg.input_value(f"{ed} input[placeholder='Nombre del contacto']") == "Luis"
     pg.fill(f"{ed} input[type=tel]", "998 123 4567"); pg.click(f"{ed} .primario"); pg.wait_for_timeout(200)
     a = pg.locator("#lista .item", has_text="Llamar a Luis").locator("a.accion-item")
@@ -75,7 +75,7 @@ with sync_playwright() as p:
     assert "Abrir pago" in pg.inner_text("#entendido")
     pg.press("#entrada", "Enter"); pg.wait_for_selector("#aviso:not([hidden])")
     pg.click("#aviso >> text=Agregar enlace de pago"); pg.wait_for_selector("#lista .editor")
-    assert pg.eval_on_selector("#lista .editor select", "s => s.value") == "pago"
+    assert pg.eval_on_selector("#lista .editor select[aria-label='Tipo de acción']", "s => s.value") == "pago"
     assert pg.is_visible("#lista .editor .nota-accion")
     pg.fill("#lista .editor input[type=url]", "https://miusuario:MiClave123@pagos.ejemplo.com/factura/123?ref=oct")
     pg.click("#lista .editor .primario"); pg.wait_for_timeout(200)
@@ -85,7 +85,7 @@ with sync_playwright() as p:
     todo = pg.evaluate("almacen.leer().then(l => JSON.stringify(l))")
     assert "MiClave123" not in todo and "miusuario" not in todo
     pago = pg.evaluate("almacen.leer().then(l => l.find(x => x.texto === 'Pagar internet'))")
-    assert set(pago) <= {"id","texto","cuando","conHora","hecho","avisado","creado","actionType","actionValue","contactName","contactPhone","url","location","hechoEn"}, pago.keys()
+    assert set(pago) <= {"id","texto","cuando","conHora","hecho","avisado","creado","actionType","actionValue","contactName","contactPhone","url","location","hechoEn","category","priority"}, pago.keys()
     paso("no se guardan credenciales: el usuario y la contraseña del enlace se descartan")
     acc = pg.evaluate("acciones.botonesNotificacion(" + json.dumps(pago) + ", 2).map(b => b.title)")
     assert acc == ["Abrir pago", "Posponer 10 min"], acc
@@ -102,7 +102,7 @@ with sync_playwright() as p:
     a = pg.locator("#lista .item", has_text="Cita con el dentista").locator("a.accion-item")
     assert a.get_attribute("href").startswith("https://www.google.com/maps/search/?api=1&query=Av.%20Tulum") and "Cómo llegar" in a.inner_text()
     paso("ubicación → 'Cómo llegar' abre el mapa con la dirección")
-    pg.click("#lista >> text=Cita con el dentista"); pg.select_option("#lista .editor select", "")
+    pg.click("#lista >> text=Cita con el dentista"); pg.select_option("#lista .editor select[aria-label='Tipo de acción']", "")
     pg.click("#lista .editor .primario"); pg.wait_for_timeout(150)
     assert pg.locator("#lista .item", has_text="Cita con el dentista").locator("a.accion-item").count() == 0
     paso("la sugerencia se puede cambiar a 'Sin acción'")

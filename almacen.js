@@ -97,7 +97,7 @@
     abiertas.forEach((c) => c.postMessage({ tipo: 'recargar' }));
   }
 
-  raiz.almacen = { leer, guardar, cambiar, posponer, marcarHecho, sincronizar, suscripcion, avisarPantallas, leerAjustes, guardarAjustes };
+  raiz.almacen = { leer, guardar, cambiar, posponer, marcarHecho, sincronizar, suscripcion, avisarPantallas, leerAjustes, guardarAjustes, leerTono, guardarTono, borrarTono };
 
   // ---- Preferencias (registro aparte: nunca se mezcla con los pendientes) ----
   function leerAjustes() {
@@ -105,5 +105,16 @@
   }
   function guardarAjustes(ajustes) {
     return operar('readwrite', (s) => s.put(ajustes, 'ajustes'));
+  }
+
+  // ---- Tono propio (una canción elegida del teléfono). Misma base de datos, registro aparte. ----
+  function leerTono() {
+    return operar('readonly', (s) => s.get('tonoPropio')).then((t) => t || null);
+  }
+  function guardarTono(tono) { // { nombre, tipo, datos: Blob }
+    return operar('readwrite', (s) => s.put(tono, 'tonoPropio'));
+  }
+  function borrarTono() {
+    return operar('readwrite', (s) => s.delete('tonoPropio'));
   }
 })(typeof self !== 'undefined' ? self : window);

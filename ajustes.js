@@ -11,6 +11,7 @@
     textSize: 'normal',     // normal | grande
     appSoundEnabled: true,
     appSoundStyle: 'suave', // suave | digital | minimal
+    reminderTone: 'suave',  // tono del recordatorio con la app abierta (ver TONOS) o 'propio'
     vibrationEnabled: true,
   });
   const VALIDOS = {
@@ -19,6 +20,7 @@
     density: ['comoda', 'compacta'],
     textSize: ['normal', 'grande'],
     appSoundStyle: ['suave', 'digital', 'minimal'],
+    reminderTone: ['suave', 'digital', 'minimal', 'campana', 'marimba', 'alerta', 'propio'],
   };
 
   function limpiar(a) {
@@ -63,6 +65,7 @@
         await almacen.guardarAjustes(actuales);
       }
     } catch {}
+    await cargarTonoPropio();
     return actuales;
   }
 
@@ -105,6 +108,47 @@
     },
   };
 
+  // Tonos para el recordatorio (lista que ve la persona en Ajustes). Los tres primeros son los mismos estilos.
+  const TONOS = [
+    { id: 'suave', nombre: 'Suave' },
+    { id: 'digital', nombre: 'Digital' },
+    { id: 'minimal', nombre: 'Minimal' },
+    { id: 'campana', nombre: 'Campana' },
+    { id: 'marimba', nombre: 'Marimba' },
+    { id: 'alerta', nombre: 'Alerta' },
+  ];
+  const TONOS_EXTRA = {
+    campana: { onda: 'sine', volumen: 0.11, recordatorio: [[1047, 0, 1.1], [1568, 0, 0.7], [784, 0.55, 1.2], [1175, 0.55, 0.8]] },
+    marimba: { onda: 'triangle', volumen: 0.12, recordatorio: [[523, 0, 0.16], [659, 0.12, 0.16], [784, 0.24, 0.16], [1047, 0.36, 0.3], [784, 0.62, 0.16], [1047, 0.74, 0.34]] },
+    alerta: { onda: 'square', volumen: 0.05, recordatorio: [[988, 0, 0.12], [988, 0.18, 0.12], [988, 0.36, 0.12], [1319, 0.6, 0.12], [1319, 0.78, 0.12], [1319, 0.96, 0.2]] },
+  };
+
+  // Canción propia: se guarda en el teléfono (IndexedDB) y suena solo con la app abierta.
+  const MAX_SEGUNDOS = 12;
+  let tonoPropio = null; // { nombre, url }
+  let audioActual = null;
+  async function cargarTonoPropio() {
+    try {
+      const t = await almacen.leerTono();
+      if (tonoPropio) URL.revokeObjectURL(tonoPropio.url);
+      tonoPropio = t && t.datos ? { nombre: t.nombre, url: URL.createObjectURL(t.datos) } : null;
+    } catch { tonoPropio = null; }
+    return tonoPropio;
+  }
+  function detener() {
+    if (audioActual) { try { audioActual.pause(); } catch {} audioActual = null; }
+  }
+  function tocarPropio() {
+    if (!tonoPropio) return false;
+    detener();
+    const a = new Audio(tonoPropio.url);
+    audioActual = a;
+    a.volume = 0.9;
+    a.play().catch(() => {});
+    setTimeout(() => { if (audioActual === a) detener(); }, MAX_SEGUNDOS * 1000);
+    return true;
+  }
+
   let ctx = null;
   function contexto() {
     if (!ctx) {
@@ -122,7 +166,15 @@
   let sonando = 0; // para las pruebas: cuántos sonidos se han tocado
   function tocar(evento, estilo) {
     if (!actuales.appSoundEnabled && !estilo) return false;
-    const receta = RECETAS[estilo || actuales.appSoundStyle];
+    if (evento === 'recordatorio') return tocarTono(estilo || actuales.reminderTone);
+    return tocarNotas(evento, RECETAS[estilo || actuales.appSoundStyle]);
+  }
+  // Tono del recordatorio: uno de la lista o la canción propia (si falta, usa Suave).
+  function tocarTono(id) {
+    if (id === 'propio') { if (tocarPropio()) { sonando++; return true; } id = 'suave'; }
+    return tocarNotas('recordatorio', RECETAS[id] || TONOS_EXTRA[id] || RECETAS.suave);
+  }
+  function tocarNotas(evento, receta) {
     const notas = receta && receta[evento];
     const c = notas && contexto();
     if (!c) return false;
@@ -153,7 +205,8 @@
 
   aplicar();
   window.ajustes = {
-    PREDETERMINADOS, cargar, cambiar, restaurar, tocar, vibrar, puedeVibrar,
+    PREDETERMINADOS, TONOS, cargar, cambiar, restaurar, tocar, tocarTono, detener, vibrar, puedeVibrar,
+    cargarTonoPropio, get tonoPropio() { return tonoPropio && tonoPropio.nombre; },
     get actuales() { return { ...actuales }; },
     get sonidosTocados() { return sonando; },
   };

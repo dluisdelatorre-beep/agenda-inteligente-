@@ -116,9 +116,10 @@
     const visibles = pendientes
       .filter((p) => (filtro === 'hechos' ? p.hecho : !p.hecho))
       .sort((a, b) => {
+        if (!a.cuando && !b.cuando) return pesoPrio(a) - pesoPrio(b);
         if (!a.cuando) return 1;
         if (!b.cuando) return -1;
-        return new Date(a.cuando) - new Date(b.cuando);
+        return new Date(a.cuando) - new Date(b.cuando) || pesoPrio(a) - pesoPrio(b);
       });
 
     if (!visibles.length) {
@@ -146,6 +147,8 @@
       });
   }
 
+  const pesoPrio = (p) => ({ alta: 0, normal: 1, baja: 2 }[p.priority] ?? 1);
+
   function boton(clase, texto, etiqueta, accion) {
     const b = document.createElement('button');
     b.type = 'button';
@@ -164,7 +167,7 @@
   function tarjeta(p, ahora) {
     const div = document.createElement('div');
     const vencido = !p.hecho && p.cuando && new Date(p.cuando) < ahora;
-    div.className = 'item' + (p.hecho ? ' hecho' : '') + (vencido ? ' vencido' : '');
+    div.className = 'item' + (p.hecho ? ' hecho' : '') + (vencido ? ' vencido' : '') + (p.priority === 'alta' ? ' prio-alta' : '');
 
     const check = boton('check', '', p.hecho ? 'Marcar como pendiente' : 'Marcar como hecho', async () => {
       p.hecho = !p.hecho;
@@ -189,6 +192,16 @@
       c.className = 'cuando';
       c.textContent = describir(p.cuando, p.conHora);
       cuerpo.appendChild(c);
+    }
+    const cat = categorias.CATEGORIAS[p.category];
+    if (cat || p.priority === 'alta' || p.priority === 'baja') {
+      const et = document.createElement('span');
+      et.className = 'etiquetas';
+      if (p.priority === 'alta' || p.priority === 'baja') {
+        et.appendChild(chipDe('chip-prio ' + p.priority, categorias.PRIORIDADES[p.priority], 'Prioridad '));
+      }
+      if (cat) et.appendChild(chipDe('chip-cat', cat));
+      cuerpo.appendChild(et);
     }
 
     // Botón de la acción (llamar, pagar, reunión, cómo llegar, enlace)
@@ -296,6 +309,25 @@
     sec.append(leyenda, tipoSel, nombre, filaTel, url, lugar, nota);
     mostrarCampos();
 
+    // ---- Categoría y prioridad ----
+    const filaOrden = document.createElement('div');
+    filaOrden.className = 'fila orden-editor';
+    const selDe = (etiqueta, opciones, valor) => {
+      const lab = document.createElement('label');
+      const sp = document.createElement('span');
+      sp.textContent = etiqueta;
+      const sel = document.createElement('select');
+      sel.setAttribute('aria-label', etiqueta);
+      opciones.forEach(([v, txt]) => { const o = document.createElement('option'); o.value = v; o.textContent = txt; sel.appendChild(o); });
+      sel.value = valor;
+      lab.append(sp, sel);
+      filaOrden.appendChild(lab);
+      return sel;
+    };
+    const catSugerida = p.category === undefined ? categorias.sugerirCategoria(p.texto, p.actionType) : p.category;
+    const catSel = selDe('Categoría', [['', 'Sin categoría'], ...Object.entries(categorias.CATEGORIAS).map(([k, v]) => [k, `${v.icono} ${v.etiqueta}`])], catSugerida || '');
+    const prioSel = selDe('Prioridad', Object.entries(categorias.PRIORIDADES).map(([k, v]) => [k, `${v.icono} ${v.etiqueta}`]), categorias.limpiarPrioridad(p.priority));
+
     const botones = document.createElement('div');
     botones.className = 'fila fin';
     const cancelar = boton('secundario', 'Cancelar', null, () => { editando = null; pintar(); });
@@ -305,7 +337,7 @@
     ok.textContent = 'Guardar cambios';
     botones.append(cancelar, ok);
 
-    form.append(t, filaFecha, sec, botones);
+    form.append(t, filaFecha, filaOrden, sec, botones);
     form.onsubmit = async (e) => {
       e.preventDefault();
       const texto = t.value.trim();
@@ -319,6 +351,8 @@
         p.conHora = false;
       }
       p.avisado = false;
+      p.category = categorias.limpiarCategoria(catSel.value);
+      p.priority = categorias.limpiarPrioridad(prioSel.value);
       // La acción nunca impide guardar: si un dato no es válido, se guarda sin él.
       Object.assign(p, acciones.normalizar({
         actionType: tipoSel.value || null,
@@ -349,6 +383,7 @@
     pintarEncabezado(); pintarResumen(); pintarLista();
     if (vistaActual === 'calendario') pintarCalendario();
     if (vistaActual === 'buscar') pintarBusqueda();
+    if (vistaActual === 'estadisticas') pintarEstadisticas();
   }
 
   // ---- Captura en lenguaje natural ----
@@ -358,9 +393,12 @@
     const caja = $('entendido');
     $('guardar').disabled = !frase;
     if (!frase) { borrador = null; caja.hidden = true; return; }
-    const extra = acciones.extraer(frase);
-    borrador = window.interpretar(extra.resto || frase);
+    const pr = categorias.extraerPrioridad(frase);
+    const extra = acciones.extraer(pr.resto);
+    borrador = window.interpretar(extra.resto || pr.resto);
     borrador.accion = acciones.sugerir(borrador.texto, extra);
+    borrador.priority = pr.priority;
+    borrador.category = categorias.sugerirCategoria(borrador.texto, borrador.accion.actionType);
     caja.hidden = false;
     caja.innerHTML = '';
     const que = document.createElement('strong');
@@ -372,7 +410,15 @@
       chip.textContent = acciones.TIPOS[borrador.accion.actionType].icono + ' ' + acciones.TIPOS[borrador.accion.actionType].etiqueta;
       caja.append(' ', chip);
     }
+    if (borrador.category) caja.append(' ', chipDe('chip-cat', categorias.CATEGORIAS[borrador.category]));
+    if (borrador.priority !== 'normal') caja.append(' ', chipDe('chip-prio ' + borrador.priority, categorias.PRIORIDADES[borrador.priority], 'Prioridad '));
   });
+  function chipDe(clase, d, antes = '') {
+    const c = document.createElement('span');
+    c.className = clase;
+    c.textContent = `${d.icono} ${antes}${d.etiqueta}`;
+    return c;
+  }
 
   $('captura').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -386,6 +432,8 @@
       avisado: false,
       creado: new Date().toISOString(),
       ...acciones.normalizar(borrador.accion || {}),
+      category: categorias.limpiarCategoria(borrador.category),
+      priority: categorias.limpiarPrioridad(borrador.priority),
     };
     pendientes.push(nuevo);
     await guardar();
@@ -581,7 +629,7 @@
   // Hoy es la base. Salir de Hoy agrega un paso al historial, así el botón
   // "atrás" del teléfono regresa a Hoy como en una app nativa.
   // =====================================================================
-  const VISTAS = ['hoy', 'calendario', 'buscar', 'ajustes'];
+  const VISTAS = ['hoy', 'calendario', 'buscar', 'ajustes', 'estadisticas'];
 
   function mostrarVista(vista) {
     if (!VISTAS.includes(vista)) vista = 'hoy';
@@ -595,6 +643,7 @@
     });
     window.scrollTo(0, 0);
     if (vista === 'ajustes') pintarAjustes(); else pintar();
+    if (vista === 'estadisticas') pintarEstadisticas();
   }
 
   function navegar(vista) {
@@ -716,6 +765,21 @@
   // =====================================================================
   const normalizar = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
   let filtroBusca = 'todos';
+  let filtroCat = 'todas';
+  function pintarChipsCat() {
+    const nav = $('chipsCat');
+    nav.textContent = '';
+    [['todas', 'Todas'], ...Object.entries(categorias.CATEGORIAS).map(([k, v]) => [k, `${v.icono} ${v.etiqueta}`])].forEach(([k, txt]) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'chip' + (filtroCat === k ? ' activo' : '');
+      b.dataset.cat = k;
+      b.textContent = txt;
+      b.addEventListener('click', () => { filtroCat = k; editando = null; pintarChipsCat(); pintarBusqueda(); });
+      nav.appendChild(b);
+    });
+  }
+  pintarChipsCat();
 
   function pintarBusqueda() {
     const ahora = new Date();
@@ -723,17 +787,22 @@
     const palabras = consulta.split(/\s+/).filter(Boolean);
     const lista = $('resultados');
     lista.innerHTML = '';
-    if (!palabras.length) {
+    if (!palabras.length && filtroCat === 'todas') {
       $('conteo').textContent = '';
       const p = document.createElement('p');
       p.className = 'nada';
-      p.textContent = 'Escribe una palabra para buscar en todos tus pendientes, también en los ya hechos.';
+      p.textContent = 'Escribe una palabra o toca una categoría para ver tus pendientes, también los ya hechos.';
       lista.appendChild(p);
       return;
     }
     const encontrados = pendientes
       .filter((p) => (filtroBusca === 'todos' ? true : filtroBusca === 'hechos' ? p.hecho : !p.hecho))
-      .filter((p) => { const t = normalizar(p.texto); return palabras.every((w) => t.includes(w)); })
+      .filter((p) => filtroCat === 'todas' || p.category === filtroCat)
+      .filter((p) => {
+        const cat = categorias.CATEGORIAS[p.category];
+        const t = normalizar(p.texto + ' ' + (cat ? cat.etiqueta : ''));
+        return palabras.every((w) => t.includes(w));
+      })
       .sort((a, b) => {
         if (a.hecho !== b.hecho) return a.hecho ? 1 : -1;
         if (a.hecho) return new Date(b.hechoEn || 0) - new Date(a.hechoEn || 0);
@@ -745,7 +814,7 @@
     if (!encontrados.length) {
       const p = document.createElement('p');
       p.className = 'nada';
-      p.textContent = 'No encontré nada con esa palabra.';
+      p.textContent = palabras.length ? 'No encontré nada con esa palabra.' : 'No hay pendientes en esa categoría.';
       lista.appendChild(p);
       return;
     }
@@ -753,12 +822,128 @@
   }
 
   $('busca').addEventListener('input', () => { editando = null; pintarBusqueda(); });
-  document.querySelectorAll('.chip').forEach((c) => c.addEventListener('click', () => {
+  document.querySelectorAll('.chip[data-busca]').forEach((c) => c.addEventListener('click', () => {
     filtroBusca = c.dataset.busca;
-    document.querySelectorAll('.chip').forEach((x) => x.classList.toggle('activo', x === c));
+    document.querySelectorAll('.chip[data-busca]').forEach((x) => x.classList.toggle('activo', x === c));
     editando = null;
     pintarBusqueda();
   }));
+
+  // =====================================================================
+  // ESTADÍSTICAS — se calculan con los mismos pendientes de IndexedDB
+  // =====================================================================
+  function calcularEstadisticas(lista, ahora = new Date()) {
+    const dia0 = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    const hoy = dia0(ahora);
+    const hace7 = new Date(hoy); hace7.setDate(hoy.getDate() - 6);
+    const hechoEnDia = (p) => p.hecho && p.hechoEn ? dia0(new Date(p.hechoEn)) : null;
+
+    const dias = [];
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(hace7); d.setDate(hace7.getDate() + i);
+      dias.push({ dia: d, hechos: lista.filter((p) => { const h = hechoEnDia(p); return h && h.getTime() === d.getTime(); }).length });
+    }
+    const hechosSemana = dias.reduce((a, d) => a + d.hechos, 0);
+    const activos = lista.filter((p) => !p.hecho);
+    const atrasados = activos.filter((p) => p.cuando && new Date(p.cuando) < ahora).length;
+    // Cumplimiento: de lo que tocaba en los últimos 7 días (hasta ahora), cuánto quedó hecho
+    const tocaban = lista.filter((p) => p.cuando && new Date(p.cuando) >= hace7 && new Date(p.cuando) <= ahora);
+    const cumplimiento = tocaban.length ? Math.round(100 * tocaban.filter((p) => p.hecho).length / tocaban.length) : null;
+    // Racha: días seguidos con al menos un pendiente hecho (si hoy aún no, cuenta desde ayer)
+    const conHecho = new Set(lista.map(hechoEnDia).filter(Boolean).map((d) => d.getTime()));
+    let racha = 0;
+    const d = new Date(hoy);
+    if (!conHecho.has(d.getTime())) d.setDate(d.getDate() - 1);
+    while (conHecho.has(d.getTime())) { racha++; d.setDate(d.getDate() - 1); }
+
+    const porCategoria = [...Object.keys(categorias.CATEGORIAS), null].map((c) => {
+      const de = lista.filter((p) => (p.category || null) === c);
+      return { categoria: c, total: de.length, hechos: de.filter((p) => p.hecho).length };
+    }).filter((x) => x.total);
+    const porPrioridad = Object.keys(categorias.PRIORIDADES).map((k) => ({
+      prioridad: k, total: activos.filter((p) => categorias.limpiarPrioridad(p.priority) === k).length,
+    }));
+    return { dias, hechosSemana, activos: activos.length, atrasados, cumplimiento, racha, porCategoria, porPrioridad, total: lista.length };
+  }
+
+  function pintarEstadisticas() {
+    const e = calcularEstadisticas(pendientes);
+    const tiles = $('statsTiles');
+    tiles.textContent = '';
+    [
+      ['Completados (7 días)', e.hechosSemana, ''],
+      ['Cumplimiento', e.cumplimiento === null ? '—' : e.cumplimiento + '%', 'de lo que tocaba esta semana'],
+      ['Pendientes', e.activos, e.atrasados ? `${e.atrasados} atrasado${e.atrasados === 1 ? '' : 's'}` : 'ninguno atrasado'],
+      ['Racha', e.racha + (e.racha === 1 ? ' día' : ' días'), 'seguidos completando algo'],
+    ].forEach(([t, v, sub]) => {
+      const div = document.createElement('div');
+      div.className = 'tile';
+      const n = document.createElement('strong'); n.textContent = v;
+      const l = document.createElement('span'); l.textContent = t;
+      div.append(l, n);
+      if (sub) { const s2 = document.createElement('small'); s2.textContent = sub; div.append(s2); }
+      tiles.appendChild(div);
+    });
+
+    // Barras por día (una sola serie: color del acento, número encima)
+    const caja = $('statsDias');
+    caja.textContent = '';
+    const max = Math.max(1, ...e.dias.map((d) => d.hechos));
+    caja.setAttribute('aria-label', 'Completados por día: ' + e.dias.map((d) =>
+      `${d.dia.toLocaleDateString('es-MX', { weekday: 'long' })} ${d.hechos}`).join(', '));
+    e.dias.forEach((d, i) => {
+      const col = document.createElement('div');
+      col.className = 'col-dia' + (i === 6 ? ' hoy' : '');
+      col.title = `${mayus(d.dia.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric' }))}: ${d.hechos} completado${d.hechos === 1 ? '' : 's'}`;
+      const num = document.createElement('span'); num.className = 'num'; num.textContent = d.hechos;
+      const pista = document.createElement('div'); pista.className = 'pista';
+      const barra = document.createElement('div'); barra.className = 'barra';
+      barra.style.height = (d.hechos ? Math.max(6, 100 * d.hechos / max) : 0) + '%';
+      pista.appendChild(barra);
+      const et = document.createElement('span'); et.className = 'dia';
+      et.textContent = i === 6 ? 'Hoy' : mayus(d.dia.toLocaleDateString('es-MX', { weekday: 'short' }).replace('.', ''));
+      col.append(num, pista, et);
+      caja.appendChild(col);
+    });
+
+    // Por categoría: barra horizontal del total con la parte ya hecha
+    const cat = $('statsCat');
+    cat.textContent = '';
+    if (!e.porCategoria.length) {
+      const p = document.createElement('p'); p.className = 'nada'; p.textContent = 'Aún no hay pendientes.'; cat.appendChild(p);
+    }
+    const maxCat = Math.max(1, ...e.porCategoria.map((x) => x.total));
+    e.porCategoria.forEach((x) => {
+      const info = categorias.CATEGORIAS[x.categoria] || { icono: '·', etiqueta: 'Sin categoría' };
+      const fila = document.createElement('div'); fila.className = 'fila-cat';
+      fila.title = `${info.etiqueta}: ${x.hechos} de ${x.total} hechos`;
+      const nom = document.createElement('span'); nom.className = 'nom'; nom.textContent = `${info.icono} ${info.etiqueta}`;
+      const pista = document.createElement('div'); pista.className = 'pista-h';
+      const total = document.createElement('div'); total.className = 'total'; total.style.width = (100 * x.total / maxCat) + '%';
+      const hecho = document.createElement('div'); hecho.className = 'hecho'; hecho.style.width = (x.total ? 100 * x.hechos / x.total : 0) + '%';
+      total.appendChild(hecho); pista.appendChild(total);
+      const val = document.createElement('span'); val.className = 'val'; val.textContent = `${x.hechos}/${x.total}`;
+      fila.append(nom, pista, val);
+      cat.appendChild(fila);
+    });
+
+    const prio = $('statsPrio');
+    prio.textContent = '';
+    e.porPrioridad.forEach((x) => {
+      const d = categorias.PRIORIDADES[x.prioridad];
+      const div = document.createElement('div'); div.className = 'prio-tile ' + x.prioridad;
+      const n = document.createElement('strong'); n.textContent = x.total;
+      const l = document.createElement('span'); l.textContent = `${d.icono} ${d.etiqueta}`;
+      div.append(n, l);
+      prio.appendChild(div);
+    });
+    $('statsNota').textContent = 'La barra llena de cada categoría es lo que ya está hecho; el resto, lo que falta. ' +
+      'Se cuenta con lo guardado en este teléfono.';
+  }
+  window.__estadisticas = calcularEstadisticas; // para las pruebas
+
+  $('verEstadisticas').addEventListener('click', () => navegar('estadisticas'));
+  $('volverHoy').addEventListener('click', () => navegar('hoy'));
 
   // =====================================================================
   // AJUSTES — apariencia, sonidos, vibración y estado de avisos
@@ -778,6 +963,8 @@
     });
     $('ajSonido').checked = a.appSoundEnabled;
     $('estiloSonido').disabled = !a.appSoundEnabled;
+    $('tonoRecordatorio').disabled = !a.appSoundEnabled;
+    pintarTonos(a);
     $('ajVibrar').checked = a.vibrationEnabled && ajustes.puedeVibrar;
     $('ajVibrar').disabled = !ajustes.puedeVibrar;
     $('notaVibrar').textContent = ajustes.puedeVibrar
@@ -813,6 +1000,107 @@
     await ajustes.cambiar({ vibrationEnabled: ev.target.checked });
     if (ev.target.checked) ajustes.vibrar();
   });
+
+  // ---- Tono del recordatorio: lista, canción propia y guía para la app cerrada ----
+  function pintarTonos(a = ajustes.actuales) {
+    const lista = $('listaTonos');
+    lista.textContent = '';
+    const opciones = ajustes.TONOS.map((t) => ({ id: t.id, nombre: t.nombre }));
+    if (ajustes.tonoPropio) opciones.push({ id: 'propio', nombre: '🎵 ' + ajustes.tonoPropio, propio: true });
+    for (const t of opciones) {
+      const fila = document.createElement('div');
+      fila.className = 'tono';
+      const lab = document.createElement('label');
+      const r = document.createElement('input');
+      r.type = 'radio'; r.name = 'reminderTone'; r.value = t.id;
+      r.checked = a.reminderTone === t.id || (a.reminderTone === 'propio' && !ajustes.tonoPropio && t.id === 'suave');
+      const nom = document.createElement('span');
+      nom.textContent = t.nombre;
+      lab.append(r, nom);
+      const probar = document.createElement('button');
+      probar.type = 'button'; probar.className = 'probar';
+      probar.textContent = '▶'; probar.setAttribute('aria-label', 'Escuchar ' + t.nombre);
+      probar.addEventListener('click', () => ajustes.tocarTono(t.id));
+      fila.append(lab, probar);
+      if (t.propio) {
+        const quitar = document.createElement('button');
+        quitar.type = 'button'; quitar.className = 'quitar';
+        quitar.textContent = 'Quitar'; quitar.setAttribute('aria-label', 'Quitar mi canción');
+        quitar.addEventListener('click', quitarCancion);
+        fila.append(quitar);
+      }
+      lista.append(fila);
+    }
+    $('elegirCancion').textContent = ajustes.tonoPropio ? '🎵 Cambiar mi canción' : '🎵 Elegir de mi música';
+  }
+
+  $('listaTonos').addEventListener('change', async (ev) => {
+    if (ev.target.name !== 'reminderTone') return;
+    await ajustes.cambiar({ reminderTone: ev.target.value });
+    ajustes.tocarTono(ev.target.value); // así escucha el que eligió
+    pintarTonos();
+  });
+
+  $('elegirCancion').addEventListener('click', () => $('archivoTono').click());
+  $('archivoTono').addEventListener('change', async (ev) => {
+    const f = ev.target.files && ev.target.files[0];
+    ev.target.value = '';
+    if (!f) return;
+    const MAX_MB = 8;
+    if (f.type && !f.type.startsWith('audio/')) { avisar('Ese archivo no es de audio. Elige una canción o un tono.'); return; }
+    if (f.size > MAX_MB * 1024 * 1024) { avisar(`La canción pesa más de ${MAX_MB} MB. Elige una más ligera.`); return; }
+    // Revisamos que el teléfono la pueda reproducir antes de guardarla
+    const url = URL.createObjectURL(f);
+    const sirve = await new Promise((ok) => {
+      const prueba = new Audio();
+      const t = setTimeout(() => ok(false), 8000);
+      prueba.onloadedmetadata = () => { clearTimeout(t); ok(true); };
+      prueba.onerror = () => { clearTimeout(t); ok(false); };
+      prueba.src = url;
+    });
+    URL.revokeObjectURL(url);
+    if (!sirve) { avisar('Este teléfono no puede reproducir ese archivo. Prueba con un MP3.'); return; }
+    try {
+      await almacen.guardarTono({ nombre: f.name.replace(/\.[^.]+$/, ''), tipo: f.type, datos: f });
+    } catch {
+      avisar('No se pudo guardar la canción. Revisa que haya espacio en el teléfono.'); return;
+    }
+    await ajustes.cargarTonoPropio();
+    await ajustes.cambiar({ reminderTone: 'propio', appSoundEnabled: true });
+    pintarAjustes();
+    ajustes.tocarTono('propio');
+    avisar('Listo: tu canción suena cuando llegue un recordatorio con la app abierta');
+  });
+
+  async function quitarCancion() {
+    ajustes.detener();
+    try { await almacen.borrarTono(); } catch {}
+    await ajustes.cargarTonoPropio();
+    if (ajustes.actuales.reminderTone === 'propio') await ajustes.cambiar({ reminderTone: 'suave' });
+    pintarAjustes();
+    avisar('Canción quitada. Se usa el tono Suave.');
+  }
+
+  $('sonidoCerrada').addEventListener('click', () => {
+    const pasos = esIOS
+      ? ['En iPhone, los avisos de apps web suenan con el tono de notificaciones del sistema.',
+         'Ajustes → Sonidos y vibraciones → Tono de aviso (cambia el tono general).']
+      : instalada
+        ? ['Abre los Ajustes de tu teléfono.', 'Entra a Apps y busca "Agenda".', 'Toca Notificaciones.',
+           'Toca la categoría de avisos y luego Sonido.', 'Elige un tono o una canción de tu teléfono.']
+        : ['Abre los Ajustes de tu teléfono.', 'Entra a Apps → Chrome → Notificaciones.',
+           'Busca agendainteligente.site y toca Sonido.', 'Elige un tono o una canción de tu teléfono.'];
+    const ol = $('pasosGuia');
+    ol.textContent = '';
+    for (const t of pasos) { const li = document.createElement('li'); li.textContent = t; ol.append(li); }
+    $('notaGuia').textContent = esIOS
+      ? 'Apple no deja elegir un tono distinto para cada app web.'
+      : 'Los nombres pueden cambiar un poco según la marca del teléfono. Por seguridad, una página web no puede abrir esos ajustes por ti.';
+    const dlg = $('guiaSonido');
+    if (typeof dlg.showModal === 'function') dlg.showModal();
+    else avisar(pasos.join(' '));
+  });
+
   $('configurarAvisos').addEventListener('click', async () => {
     if (Notification.permission === 'denied') {
       avisar('Los avisos están bloqueados. Actívalos en los ajustes del navegador para esta página.');
