@@ -29,9 +29,9 @@ with sync_playwright() as p:
         assert pg.get_attribute("#abrirAsistente", "data-estado") == "idle"
         a = pg.evaluate(ANIMS, ".avatar-respira")
         assert len(a) == 1 and a[0]["n"] == "avatar-respira" and 4000 <= a[0]["d"] <= 6000 and a[0]["it"] == float("inf"), a
-        assert a[0]["props"] == ["transform"] and "translateY(-2.5px) scale(1.017)" in a[0]["kf"], a
+        assert a[0]["props"] == ["transform"] and "translateY(-3px) scale(1.02)" in a[0]["kf"], a
         assert pg.evaluate("getComputedStyle(document.querySelector('.avatar-respira')).animationTimingFunction").startswith("cubic-bezier")
-        paso(f"[{tema}] en reposo respira: {a[0]['d']/1000:.1f} s, sube 2.5 px y escala 1.017, solo transform, curva orgánica")
+        paso(f"[{tema}] en reposo respira: {a[0]['d']/1000:.1f} s, sube 3 px y escala 1.02, solo transform, curva orgánica")
         marca = pg.evaluate("document.getElementById('abrirAsistente').__marca = 1")
 
         # Toque: 0.97 y abre el panel
@@ -52,7 +52,7 @@ with sync_playwright() as p:
         paso(f"[{tema}] con un vencido: halo dorado con 2 pulsos (opacity y transform)")
         if tema == "claro":
             pg.wait_for_timeout(1400); pg.screenshot(path=os.path.join(SALIDA, "avatar-halo.png"), clip={"x": 0, "y": 140, "width": 390, "height": 200})
-        pg.wait_for_timeout(3700)
+        pg.wait_for_timeout(4300)
         assert "pulsando" not in pg.get_attribute("#abrirAsistente", "class")
         assert pg.evaluate(ANIMS, ".avatar-halo") == []
         assert pg.evaluate("getComputedStyle(document.querySelector('.avatar-halo')).opacity") == "0"
@@ -70,6 +70,23 @@ with sync_playwright() as p:
         paso(f"[{tema}] un pendiente nuevo de prioridad Alta vuelve a dar los 2 pulsos")
         pg.screenshot(path=os.path.join(SALIDA, f"avatar-{tema}.png"), clip={"x": 0, "y": 120, "width": 390, "height": 260})
         ctx.close()
+
+    # Caso del teléfono: capturar con el teclado abierto (avatar fuera de pantalla) → el pulso espera a que se vea
+    ctx = p.chromium.launch_persistent_context(tempfile.mkdtemp(), channel="chromium", viewport={"width": 390, "height": 500},
+                                               locale="es-MX", timezone_id="America/Cancun")
+    pg = ctx.pages[0]
+    pg.on("pageerror", lambda e: errores.append("page: " + str(e)))
+    pg.goto(U); pg.wait_for_selector("#resumen h2")
+    for i in range(6): pg.fill("#entrada", f"tarea {i}"); pg.press("#entrada", "Enter"); pg.wait_for_timeout(80)
+    pg.evaluate("window.scrollTo(0, document.documentElement.scrollHeight)"); pg.wait_for_timeout(200)
+    assert pg.evaluate("document.getElementById('abrirAsistente').getBoundingClientRect().bottom") < 0
+    pg.evaluate("document.getElementById('entrada').value = 'llamar al banco hoy a las 8 am'; document.getElementById('entrada').dispatchEvent(new Event('input')); document.getElementById('captura').requestSubmit()"); pg.wait_for_timeout(400)
+    assert pg.get_attribute("#abrirAsistente", "data-estado") == "alert"
+    assert "pulsando" not in pg.get_attribute("#abrirAsistente", "class")
+    pg.evaluate("window.scrollTo(0, 0)"); pg.wait_for_timeout(700)
+    assert "pulsando" in pg.get_attribute("#abrirAsistente", "class")
+    paso("si el avatar no se ve al crear el vencido (teclado abierto), los 2 pulsos esperan y se ven al regresar arriba")
+    ctx.close()
 
     # Movimiento reducido
     ctx = p.chromium.launch_persistent_context(tempfile.mkdtemp(), channel="chromium", viewport={"width": 390, "height": 844},

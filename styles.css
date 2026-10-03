@@ -591,10 +591,10 @@ body {
 .resumen .asistente-btn:focus-visible { outline: 3px solid var(--oro-claro); outline-offset: 4px; }
 .avatar-escena, .avatar-reaccion, .avatar-respira { position: absolute; inset: 0; display: block; border-radius: 50%; }
 .resumen .asistente-btn .asistente { position: static; display: block; width: 100%; height: 100%; }
-.avatar-respira { animation: avatar-respira 5.2s cubic-bezier(.45, .05, .55, .95) infinite; will-change: transform; }
+.avatar-respira { animation: avatar-respira 4.6s cubic-bezier(.45, .05, .55, .95) infinite; will-change: transform; }
 @keyframes avatar-respira {
   0%, 100% { transform: translateY(0) scale(1); }
-  50% { transform: translateY(-2.5px) scale(1.017); }
+  50% { transform: translateY(-3px) scale(1.02); }
 }
 /* Toque: 0.97 en ~120 ms y regresa suave */
 .asistente-btn.tocado .avatar-escena { animation: avatar-toque .34s cubic-bezier(.2, .7, .3, 1); }
@@ -612,17 +612,24 @@ body {
 }
 /* Atención: halo dorado suave, dos pulsos y se apaga */
 .avatar-halo {
-  position: absolute; inset: -10px; border-radius: 50%; pointer-events: none; opacity: 0; transform: scale(.9);
-  background: radial-gradient(closest-side, transparent 72%, color-mix(in srgb, var(--oro-claro) 75%, transparent) 84%, transparent 100%);
+  position: absolute; inset: -14px; border-radius: 50%; pointer-events: none; opacity: 0; transform: scale(.9);
+  background: radial-gradient(closest-side, transparent 62%, color-mix(in srgb, var(--oro-claro) 95%, transparent) 76%, color-mix(in srgb, var(--oro) 45%, transparent) 86%, transparent 100%);
 }
-.asistente-btn.pulsando .avatar-halo { animation: avatar-pulso 1.7s cubic-bezier(.3, .6, .4, 1) 2; }
+.asistente-btn.pulsando .avatar-halo { animation: avatar-pulso 1.8s cubic-bezier(.3, .6, .4, 1) 2; }
 @keyframes avatar-pulso {
-  0% { opacity: 0; transform: scale(.9); }
-  30% { opacity: .85; transform: scale(1); }
-  100% { opacity: 0; transform: scale(1.12); }
+  0% { opacity: 0; transform: scale(.88); }
+  30% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1.14); }
 }
+/* Leve aumento de brillo durante el aviso: una capa de luz encima de la imagen (solo opacity) */
+.avatar-reaccion::after {
+  content: ''; position: absolute; inset: 0; border-radius: 50%; pointer-events: none; opacity: 0;
+  background: radial-gradient(circle at 50% 40%, rgba(255, 240, 200, .55), transparent 70%);
+}
+.asistente-btn.pulsando .avatar-reaccion::after { animation: avatar-brillo 1.8s ease-in-out 2; }
+@keyframes avatar-brillo { 0%, 100% { opacity: 0; } 35% { opacity: .6; } }
 @media (prefers-reduced-motion: reduce) {
-  .avatar-respira, .asistente-btn.escucha .avatar-reaccion, .asistente-btn.pulsando .avatar-halo { animation: none; }
+  .avatar-respira, .asistente-btn.escucha .avatar-reaccion, .asistente-btn.pulsando .avatar-halo, .asistente-btn.pulsando .avatar-reaccion::after { animation: none; }
   /* Sin movimiento: la atención se marca con un halo quieto y tenue */
   .asistente-btn.con-algo .avatar-halo { opacity: .5; transform: none; }
   .asistente-btn.tocado .avatar-escena { animation-duration: .2s; }

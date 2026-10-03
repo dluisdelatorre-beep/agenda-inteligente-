@@ -42,6 +42,11 @@
   let idsVistos = '';
   let ultimoPulso = 0;
   let quieto = matchMedia('(prefers-reduced-motion: reduce)');
+  // El halo solo sirve si la persona ve el avatar: si está fuera de pantalla (por ejemplo con el teclado
+  // abierto al capturar) o la app está en segundo plano, el pulso espera a que vuelva a verse.
+  let visible = false;
+  let pulsoPendiente = false;
+  let observador = null;
 
   function crear(alTocar) {
     if (boton) return boton;
@@ -67,6 +72,14 @@
       if (e.animationName === 'avatar-pulso') boton.classList.remove('pulsando');
     });
     boton.addEventListener('click', () => alTocar && alTocar());
+    if ('IntersectionObserver' in window) {
+      observador = new IntersectionObserver((entradas) => {
+        visible = entradas.some((e) => e.isIntersecting && e.intersectionRatio >= 0.6);
+        if (visible && pulsoPendiente) setTimeout(pulso, 250);
+      }, { threshold: [0, 0.6, 1] });
+      observador.observe(boton);
+    } else visible = true;
+    document.addEventListener('visibilitychange', () => { if (!document.hidden && pulsoPendiente) setTimeout(pulso, 400); });
     return boton;
   }
 
@@ -83,7 +96,7 @@
     const estado = info && info.estado ? info.estado : 'idle';
     const ids = (info && info.ids ? info.ids : []).join(',');
     ponerEstado(estado);
-    if (estado === 'idle') { idsVistos = ''; ultimoEstado = estado; return; }
+    if (estado === 'idle') { idsVistos = ''; ultimoEstado = estado; pulsoPendiente = false; return; }
     const nuevos = ids.split(',').some((id) => id && !idsVistos.split(',').includes(id));
     const toca = nuevos || (alVolver && Date.now() - ultimoPulso > REPETIR_MIN * 60000);
     idsVistos = ids;
@@ -93,6 +106,8 @@
 
   function pulso() {
     if (!boton) return;
+    if (!visible || document.hidden || !boton.isConnected) { pulsoPendiente = true; return; }
+    pulsoPendiente = false;
     ultimoPulso = Date.now();
     boton.classList.remove('pulsando');
     void boton.offsetWidth;
