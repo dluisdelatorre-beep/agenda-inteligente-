@@ -159,26 +159,40 @@
     if (ctx.state === 'suspended') ctx.resume().catch(() => {});
     return ctx;
   }
-  // iPhone y Chrome solo permiten audio después de un toque: lo "despertamos" en el primero.
+  // iPhone y Chrome solo permiten audio después de un toque: lo "despertamos" con cada toque
+  // (Android lo vuelve a dormir cuando la app pasa a segundo plano).
   ['pointerdown', 'keydown'].forEach((ev) =>
-    window.addEventListener(ev, () => { if (actuales.appSoundEnabled) contexto(); }, { once: true, passive: true }));
+    window.addEventListener(ev, () => { if (actuales.appSoundEnabled) contexto(); }, { passive: true }));
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && ctx) contexto(); });
 
   let sonando = 0; // para las pruebas: cuántos sonidos se han tocado
   function tocar(evento, estilo) {
     if (!actuales.appSoundEnabled && !estilo) return false;
-    if (evento === 'recordatorio') return tocarTono(estilo || actuales.reminderTone);
+    if (evento === 'recordatorio') return tocarTono(estilo || actuales.reminderTone, estilo ? 1 : 3);
     return tocarNotas(evento, RECETAS[estilo || actuales.appSoundStyle]);
   }
   // Tono del recordatorio: uno de la lista o la canción propia (si falta, usa Suave).
-  function tocarTono(id) {
+  // repetir: cuántas veces suena el tono (al llegar un recordatorio suena 3 veces, como alarma corta)
+  function tocarTono(id, repetir = 1) {
     if (id === 'propio') { if (tocarPropio()) { sonando++; return true; } id = 'suave'; }
-    return tocarNotas('recordatorio', RECETAS[id] || TONOS_EXTRA[id] || RECETAS.suave);
+    return tocarNotas('recordatorio', RECETAS[id] || TONOS_EXTRA[id] || RECETAS.suave, repetir);
   }
-  function tocarNotas(evento, receta) {
-    const notas = receta && receta[evento];
-    const c = notas && contexto();
+  function tocarNotas(evento, receta, repetir = 1) {
+    const base = receta && receta[evento];
+    const c = base && contexto();
     if (!c) return false;
-    const t0 = c.currentTime + 0.01;
+    // Repite el patrón con una pausa corta entre cada vuelta
+    const largo = Math.max(...base.map(([, i, d]) => i + d)) + 0.45;
+    const notas = [];
+    for (let r = 0; r < repetir; r++) for (const [f, i, d] of base) notas.push([f, i + r * largo, d]);
+    const empezar = () => programar(c, receta, notas);
+    if (c.state === 'running') empezar();
+    else c.resume().then(empezar).catch(() => {});
+    sonando++;
+    return true;
+  }
+  function programar(c, receta, notas) {
+    const t0 = c.currentTime + 0.02;
     for (const [f, inicio, dur] of notas) {
       const o = c.createOscillator();
       const g = c.createGain();
@@ -191,8 +205,6 @@
       o.start(t0 + inicio);
       o.stop(t0 + inicio + dur + 0.02);
     }
-    sonando++;
-    return true;
   }
 
   const puedeVibrar = typeof navigator.vibrate === 'function';

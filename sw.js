@@ -4,7 +4,7 @@
 // 3) Atiende los botones del aviso: "Posponer 10 min" y "Hecho".
 importScripts('almacen.js', 'acciones.js');
 
-const CACHE = 'agenda-v10';
+const CACHE = 'agenda-v11';
 const POSPONER_MIN = 10;
 const ARCHIVOS = [
   '/', '/index.html', '/styles.css', '/app.js', '/parser.js', '/almacen.js', '/ajustes.js', '/acciones.js', '/categorias.js',
@@ -45,7 +45,20 @@ self.addEventListener('push', (e) => {
       const lista = await almacen.leer();
       p = lista.find((x) => x.id === datos.id) || null;
       if (p && (p.hecho || (p.cuando && new Date(p.cuando) - Date.now() > 60000))) return;
-      if (p) { p.avisado = true; await almacen.guardar(lista); await almacen.avisarPantallas(); }
+      // ¿La app (abierta o en segundo plano) ya lanzó este aviso con sonido hace poco? Entonces no se repite el sonido:
+      // si el aviso sigue en la barra se deja tal cual; si ya lo quitaron, no se vuelve a poner.
+      if (p && p.avisadoEn && Date.now() - new Date(p.avisadoEn) < 180000) {
+        const ya = await self.registration.getNotifications({ tag: datos.id }).catch(() => []);
+        if (ya.length) {
+          const n = ya[0];
+          return self.registration.showNotification(n.title, {
+            body: n.body, tag: n.tag, data: n.data, icon: n.icon, badge: n.badge, actions: n.actions,
+            requireInteraction: true, renotify: false, silent: true,
+          });
+        }
+        return;
+      }
+      if (p) { p.avisado = true; p.avisadoEn = new Date().toISOString(); await almacen.guardar(lista); await almacen.avisarPantallas(); }
     }
     // Vibración según Ajustes (solo donde el sistema la respeta, como Android).
     let vibrar = true;

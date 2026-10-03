@@ -495,6 +495,7 @@
       if (p.hecho || p.avisado || !p.cuando || !p.conHora) continue;
       if (new Date(p.cuando) <= ahora) {
         p.avisado = true;
+        p.avisadoEn = ahora.toISOString();
         cambio = true;
         const dest = acciones.destino(p);
         const botonesAviso = [{ texto: `+${POSPONER_MIN} min`, fn: () => posponer(p.id) }];
@@ -509,16 +510,22 @@
   }
 
   // Misma etiqueta (tag) que usa el servidor: si llegan los dos, el teléfono muestra uno solo.
+  // Con la app abierta (o en segundo plano) la propia app lanza el aviso del sistema a la hora exacta,
+  // con sonido y vibración. Se anota "avisadoEn" para que el aviso del servidor (Web Push) que llegue
+  // después no suene dos veces.
   async function mostrarNotificacion(p) {
     if (!('Notification' in window) || Notification.permission !== 'granted') return;
     try {
-      // Si el servidor ya avisa por Web Push, ese aviso es el bueno (con sonido): no lo duplicamos.
-      if (await almacen.suscripcion()) return;
       const reg = await navigator.serviceWorker.ready;
       const cuerpo = acciones.cuerpoNotificacion(p);
+      try { (await reg.getNotifications({ tag: p.id })).forEach((n) => n.close()); } catch {}
       await reg.showNotification(cuerpo ? p.texto : 'Agenda Inteligente', {
         body: cuerpo || p.texto,
         tag: p.id,
+        renotify: true,
+        silent: false,
+        requireInteraction: true,
+        vibrate: ajustes.actuales.vibrationEnabled ? [200, 100, 200, 100, 200] : [],
         icon: 'icons/icon-192.png',
         badge: 'icons/badge-96.png',
         data: { id: p.id },
@@ -1175,5 +1182,7 @@
       mostrarHojaAccion(idAccion);
     }
   });
-  setInterval(() => { revisarRecordatorios(); pintarResumen(); }, 30000);
+  // Revisión frecuente para avisar a la hora exacta con la app abierta
+  setInterval(() => { revisarRecordatorios(); }, 5000);
+  setInterval(() => { pintarResumen(); }, 30000);
 })();
