@@ -81,4 +81,16 @@ caso('pendientes viejos sin prioridad ni categoría funcionan igual', () => {
   assert.strictEqual(r.primero.texto, 'Primero: algo de antes. Era para las 10:00 a.m.');
 });
 
+caso('atención del avatar: vencido = alert; alta / próximo / acción cercana = attention; nada = idle', () => {
+  assert.strictEqual(S.atencion(lista, AHORA).estado, 'alert');
+  assert.strictEqual(S.atencion([], AHORA).estado, 'idle');
+  const tranquilo = [P('Junta', { cuando: a(19, 30), conHora: true }), P('Ideas', { priority: 'baja' })];
+  assert.strictEqual(S.atencion(tranquilo, AHORA).estado, 'idle');
+  assert.strictEqual(S.atencion([P('Urgente', { priority: 'alta' })], AHORA).estado, 'attention');
+  assert.strictEqual(S.atencion([P('Pronto', { cuando: a(17, 10), conHora: true })], AHORA).estado, 'attention');
+  const llamada = P('Llamar', { cuando: a(17, 50), conHora: true, actionType: 'llamar', contactPhone: '9981234567', actionValue: 'tel:9981234567' });
+  assert.strictEqual(S.atencion([llamada], AHORA).estado, 'attention');
+  assert.strictEqual(S.atencion([{ ...llamada, cuando: a(19, 0) }], AHORA).estado, 'idle');
+});
+
 console.log(`\n${ok} pruebas del asistente pasaron`);

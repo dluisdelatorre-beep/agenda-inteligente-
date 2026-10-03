@@ -108,8 +108,8 @@ with sync_playwright() as p:
 
     pg.click("#asisBotones [data-sec=atrasados]")
     assert "No tienes pendientes atrasados." in pg.inner_text("#asisContenido")
-    assert "con-algo" not in pg.get_attribute("#abrirAsistente", "class")
-    paso("ya sin atrasados: 'No tienes pendientes atrasados.' y la asistente deja de pulsar")
+    assert pg.get_attribute("#abrirAsistente", "data-estado") != "alert"
+    paso("ya sin atrasados: 'No tienes pendientes atrasados.' y la asistente sale del estado de alerta")
 
     # Deslizar hacia abajo para cerrar
     box = pg.locator("#asisAgarre").bounding_box()

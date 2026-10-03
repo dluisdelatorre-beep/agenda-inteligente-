@@ -132,7 +132,26 @@
     return d;
   }
 
-  const api = { analizar, vencido, cuandoTexto, mananaDe };
+  // ¿La asistente tiene algo útil que decir? (para el halo del avatar)
+  // alert: hay algo vencido. attention: prioridad Alta de hoy/sin fecha, un recordatorio en los próximos
+  // 15 min o una llamada/pago/reunión/cita en la próxima hora. Devuelve también los ids, para avisar
+  // solo cuando aparece algo nuevo.
+  function atencion(lista, ahora = new Date()) {
+    const abiertos = (Array.isArray(lista) ? lista : []).filter((p) => !p.hecho);
+    const ids = new Set();
+    let alerta = false;
+    for (const p of abiertos) {
+      const c = p.cuando ? new Date(p.cuando) : null;
+      const falta = c ? c - ahora : null;
+      if (vencido(p, ahora)) { ids.add(p.id); alerta = true; continue; }
+      if (prio(p) === 'alta' && (!c || mismoDia(c, ahora))) { ids.add(p.id); continue; }
+      if (c && p.conHora && falta >= 0 && falta <= 15 * 60000) { ids.add(p.id); continue; }
+      if (c && p.conHora && falta >= 0 && falta <= 60 * 60000 && A && A.destino(p)) ids.add(p.id);
+    }
+    return { estado: alerta ? 'alert' : ids.size ? 'attention' : 'idle', ids: [...ids].sort() };
+  }
+
+  const api = { analizar, vencido, cuandoTexto, mananaDe, atencion };
   raiz.asistente = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })(typeof self !== 'undefined' ? self : typeof window !== 'undefined' ? window : globalThis);

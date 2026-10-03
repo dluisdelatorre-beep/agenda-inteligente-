@@ -54,25 +54,16 @@
     const atrasados = pendientes.filter((p) => !p.hecho && p.cuando && new Date(p.cuando) < ahora && !mismoDia(new Date(p.cuando), ahora));
 
     const caja = $('resumen');
-    caja.innerHTML = '';
+    // El avatar se crea una sola vez y no se borra al repintar (así no se reinician sus animaciones)
+    const btnAsis = avatarAsistente.crear(() => abrirAsistente());
+    [...caja.childNodes].forEach((n) => { if (n !== btnAsis) n.remove(); });
+    if (btnAsis.parentNode !== caja) caja.appendChild(btnAsis);
+    avatarAsistente.atencion(asistente.atencion(pendientes, ahora));
     const hora = ahora.getHours();
     const hola = document.createElement('p');
     hola.className = 'hola';
     hola.textContent = '¡Hola! ' + (hora < 12 ? 'Buen día' : hora < 19 ? 'Buenas tardes' : 'Buenas noches');
-    const avatar = document.createElement('img');
-    avatar.className = 'asistente';
-    avatar.src = 'icons/asistente.png';
-    avatar.alt = '';
-    avatar.width = 88; avatar.height = 88;
-    // La asistente es un botón: abre "Tu asistente". Si hay algo vencido, hace un pulso discreto.
-    const btnAsis = document.createElement('button');
-    btnAsis.type = 'button';
-    btnAsis.className = 'asistente-btn' + (atrasados.length || pendientes.some((p) => asistente.vencido(p, ahora)) ? ' con-algo' : '');
-    btnAsis.id = 'abrirAsistente';
-    btnAsis.setAttribute('aria-label', 'Abrir tu asistente');
-    btnAsis.appendChild(avatar);
-    btnAsis.addEventListener('click', () => abrirAsistente());
-    caja.append(btnAsis, hola);
+    caja.appendChild(hola);
     const h2 = document.createElement('h2');
     h2.textContent = deHoy.length
       ? `Hoy tienes ${deHoy.length} ${deHoy.length === 1 ? 'pendiente' : 'pendientes'}`
@@ -1159,6 +1150,7 @@
       dlg.classList.remove('cerrando');
       dlg.querySelector('.hoja-cuerpo').style.transform = '';
       if (typeof dlg.showModal === 'function') dlg.showModal(); else dlg.setAttribute('open', '');
+      avatarAsistente.reaccionar('assistant-open'); // "te estoy escuchando"
     }
   }
   function cerrarAsistente() {
@@ -1356,6 +1348,7 @@
     });
   }
   document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) avatarAsistente.atencion(asistente.atencion(pendientes), { alVolver: true });
     if (document.hidden) return;
     recargar();
     if (vistaActual === 'ajustes') pintarAjustes();
