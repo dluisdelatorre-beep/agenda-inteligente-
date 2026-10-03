@@ -21,6 +21,8 @@
       halo.setAttribute('aria-hidden', 'true');
       const reaccion = document.createElement('span');
       reaccion.className = 'avatar-reaccion';
+      const cabeza = document.createElement('span');
+      cabeza.className = 'avatar-cabeza';
       const respira = document.createElement('span');
       respira.className = 'avatar-respira';
       const img = document.createElement('img');
@@ -29,8 +31,16 @@
       img.alt = '';
       img.width = 88; img.height = 88;
       img.decoding = 'async';
-      respira.appendChild(img);
-      reaccion.appendChild(respira);
+      // Cuadro de parpadeo: la misma imagen con los ojos cerrados, encima y transparente
+      const parpado = document.createElement('img');
+      parpado.className = 'asistente avatar-parpado';
+      parpado.src = 'icons/asistente-parpado.png';
+      parpado.alt = '';
+      parpado.width = 88; parpado.height = 88;
+      parpado.setAttribute('aria-hidden', 'true');
+      respira.append(img, parpado);
+      cabeza.appendChild(respira);
+      reaccion.appendChild(cabeza);
       contenedor.append(halo, reaccion);
     },
     estado() {}, // la imagen no cambia; el CSS lee data-estado del botón
@@ -70,6 +80,8 @@
       if (e.animationName === 'avatar-toque') boton.classList.remove('tocado');
       if (e.animationName === 'avatar-escucha') boton.classList.remove('escucha');
       if (e.animationName === 'avatar-pulso') boton.classList.remove('pulsando');
+      if (e.animationName === 'avatar-parpadeo') boton.classList.remove('parpadea');
+      if (e.animationName === 'avatar-inclina' || e.animationName === 'avatar-asiente') boton.classList.remove('inclina', 'asiente');
     });
     boton.addEventListener('click', () => alTocar && alTocar());
     if ('IntersectionObserver' in window) {
@@ -80,6 +92,13 @@
       observador.observe(boton);
     } else visible = true;
     document.addEventListener('visibilitychange', () => { if (!document.hidden && pulsoPendiente) setTimeout(pulso, 400); });
+    // Reacciona cuando la persona toca cualquier botón de la app (sin exagerar: máximo uno cada 1.5 s)
+    document.addEventListener('click', (e) => {
+      const b = e.target.closest && e.target.closest('button, a');
+      if (!b || b.closest('#abrirAsistente') || b.disabled) return;
+      reaccionar('boton');
+    }, true);
+    programarParpadeo();
     return boton;
   }
 
@@ -114,13 +133,50 @@
     boton.classList.add('pulsando'); // 2 pulsos (CSS) y vuelve a idle
   }
 
-  // Microreacción: "te estoy escuchando" al abrir el panel
+  // ---- Gestos: parpadear e inclinar o asentir con la cabeza ----
+  function gesto(clase) {
+    if (!boton) return;
+    boton.classList.remove(clase);
+    void boton.offsetWidth; // reinicia la animación si se repite
+    boton.classList.add(clase);
+  }
+  const parpadear = () => gesto('parpadea');
+  function cabeza(tipo) { // 'inclina' | 'asiente'
+    boton.classList.remove('inclina', 'asiente');
+    gesto(tipo);
+  }
+
+  // Parpadeo natural cada 3.5–7 s, solo si se ve y sin "reducir movimiento"
+  let relojParpadeo = null;
+  function programarParpadeo() {
+    clearTimeout(relojParpadeo);
+    relojParpadeo = setTimeout(() => {
+      if (boton && visible && !document.hidden && !quieto.matches) {
+        parpadear();
+        if (Math.random() < 0.2) setTimeout(parpadear, 260); // a veces doble, como las personas
+      }
+      programarParpadeo();
+    }, 3500 + Math.random() * 3500);
+  }
+
+  // Reacciones:
+  //  'assistant-open' → te escucho: inclina la cabeza, parpadea y se acerca un poco
+  //  'success'        → tarea creada o terminada: asiente y parpadea
+  //  'boton'          → tocaron un botón: parpadea y una leve inclinación
+  let ultimoBoton = 0;
   function reaccionar(nombre) {
     if (!boton) return;
+    const sinMovimiento = quieto.matches;
     if (nombre === 'assistant-open') {
-      boton.classList.remove('escucha');
-      void boton.offsetWidth;
-      boton.classList.add('escucha');
+      gesto('escucha');
+      if (!sinMovimiento) { cabeza('inclina'); setTimeout(parpadear, 120); }
+    } else if (nombre === 'success') {
+      if (!sinMovimiento && visible) { cabeza('asiente'); setTimeout(parpadear, 160); }
+    } else if (nombre === 'boton') {
+      if (sinMovimiento || !visible || Date.now() - ultimoBoton < 1500) return;
+      ultimoBoton = Date.now();
+      parpadear();
+      if (!boton.classList.contains('asiente')) cabeza('inclina');
     }
     dibujante.estado(nombre, boton);
   }
@@ -133,7 +189,7 @@
   }
 
   raiz.avatarAsistente = {
-    ESTADOS, crear, atencion, reaccionar, usarDibujante,
+    ESTADOS, crear, atencion, reaccionar, usarDibujante, parpadear,
     get estado() { return boton ? boton.dataset.estado : 'idle'; },
     get movimientoReducido() { return quieto.matches; },
   };

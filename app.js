@@ -172,7 +172,7 @@
       p.hecho = !p.hecho;
       p.hechoEn = p.hecho ? new Date().toISOString() : null;
       if (!p.hecho) { p.avisado = false; delete p.avisadoEn; delete p.avisadoPara; }
-      if (p.hecho) ajustes.tocar('hecho');
+      if (p.hecho) { ajustes.tocar('hecho'); avatarAsistente.reaccionar('success'); }
       await guardar(); pintar();
       almacen.sincronizar(p);
     });
@@ -445,6 +445,7 @@
     pintar();
     almacen.sincronizar(nuevo);
     ajustes.tocar('crear');
+    avatarAsistente.reaccionar('success');
     const falta = nuevo.actionType && !acciones.destino(nuevo);
     const ofrecer = { llamar: 'Asociar contacto', pago: 'Agregar enlace de pago', reunion: 'Agregar enlace', ubicacion: 'Agregar dirección', enlace: 'Agregar enlace' };
     if (falta) avisar('Guardado', { texto: ofrecer[nuevo.actionType], fn: () => { editando = nuevo.id; pintar(); } });

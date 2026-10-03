@@ -71,6 +71,41 @@ with sync_playwright() as p:
         pg.screenshot(path=os.path.join(SALIDA, f"avatar-{tema}.png"), clip={"x": 0, "y": 120, "width": 390, "height": 260})
         ctx.close()
 
+    # Parpadeo y cabeza
+    ctx = p.chromium.launch_persistent_context(tempfile.mkdtemp(), channel="chromium", viewport={"width": 390, "height": 844}, device_scale_factor=2,
+                                               locale="es-MX", timezone_id="America/Cancun")
+    pg = ctx.pages[0]
+    pg.on("pageerror", lambda e: errores.append("page: " + str(e)))
+    pg.goto(U); pg.wait_for_selector("#resumen h2")
+    pg.evaluate("""window.__gestos = []; new MutationObserver(() => { const c = document.getElementById('abrirAsistente').className;
+        for (const g of ['parpadea','inclina','asiente']) if (c.includes(g) && __gestos[__gestos.length-1] !== g) __gestos.push(g); })
+        .observe(document.getElementById('abrirAsistente'), {attributes: true, attributeFilter: ['class']}); 0""")
+    assert pg.evaluate("document.querySelector('.avatar-parpado').complete && document.querySelector('.avatar-parpado').naturalWidth") == 256
+    pg.wait_for_timeout(7500)
+    assert "parpadea" in pg.evaluate("__gestos"), pg.evaluate("__gestos")
+    paso("parpadea sola cada pocos segundos (cuadro con ojos cerrados ~170 ms, solo opacity)")
+    pg.evaluate("__gestos = []")
+    pg.click("#abrirAsistente"); pg.wait_for_timeout(250)
+    g = pg.evaluate("__gestos"); assert "inclina" in g and "parpadea" in g, g
+    k = pg.evaluate(ANIMS, ".avatar-cabeza"); assert k and k[0]["n"] == "avatar-inclina" and k[0]["props"] == ["transform"], k
+    pg.wait_for_timeout(120); pg.screenshot(path=os.path.join(SALIDA, "avatar-inclina.png"), clip={"x": 230, "y": 150, "width": 160, "height": 150})
+    paso("al tocarla inclina la cabeza y parpadea mientras abre 'Tu asistente'")
+    pg.keyboard.press("Escape"); pg.wait_for_timeout(1700); pg.evaluate("__gestos = []")
+    pg.fill("#entrada", "comprar pan"); pg.press("#entrada", "Enter"); pg.wait_for_timeout(300)
+    g = pg.evaluate("__gestos"); assert "asiente" in g, g
+    paso("al crear un pendiente asiente con la cabeza")
+    pg.wait_for_timeout(1600); pg.evaluate("__gestos = []")
+    pg.locator("#lista .item", has_text="Comprar pan").locator(".check").click(); pg.wait_for_timeout(300)
+    assert "asiente" in pg.evaluate("__gestos")
+    paso("al marcar una tarea como hecha asiente con la cabeza")
+    pg.wait_for_timeout(1600); pg.evaluate("__gestos = []")
+    pg.click(".filtro[data-filtro=pendientes]"); pg.wait_for_timeout(200)
+    g = pg.evaluate("__gestos"); assert "parpadea" in g and "inclina" in g, g
+    pg.evaluate("__gestos = []"); pg.click(".filtro[data-filtro=hechos]"); pg.wait_for_timeout(200)
+    assert pg.evaluate("__gestos") == [] or pg.evaluate("__gestos") == ["parpadea"]
+    paso("al tocar otros botones parpadea e inclina, sin repetirse a lo loco (máximo una vez cada 1.5 s)")
+    ctx.close()
+
     # Caso del teléfono: capturar con el teclado abierto (avatar fuera de pantalla) → el pulso espera a que se vea
     ctx = p.chromium.launch_persistent_context(tempfile.mkdtemp(), channel="chromium", viewport={"width": 390, "height": 500},
                                                locale="es-MX", timezone_id="America/Cancun")
@@ -103,7 +138,12 @@ with sync_playwright() as p:
     assert pg.evaluate(ANIMS, ".avatar-escena")[0]["n"] == "avatar-toque"
     pg.click("#abrirAsistente"); pg.wait_for_selector("#hojaAsistente[open]")
     assert pg.evaluate(ANIMS, ".avatar-reaccion") == []
-    paso("movimiento reducido: no respira ni pulsa (halo quieto y tenue), solo queda el pequeño feedback al tocar")
+    pg.keyboard.press("Escape"); pg.wait_for_timeout(300)
+    pg.evaluate("""window.__p = 0; new MutationObserver(() => { if (document.getElementById('abrirAsistente').className.match(/parpadea|inclina|asiente/)) __p++; })
+        .observe(document.getElementById('abrirAsistente'), {attributes: true, attributeFilter: ['class']}); 0""")
+    pg.wait_for_timeout(7500)
+    assert pg.evaluate("__p") == 0
+    paso("movimiento reducido: no respira, no parpadea, no mueve la cabeza ni pulsa (halo quieto y tenue), solo queda el pequeño feedback al tocar")
     ctx.close()
 
 print(f"\n{ok[0]} pruebas del avatar pasaron")

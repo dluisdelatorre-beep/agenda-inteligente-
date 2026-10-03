@@ -4,12 +4,12 @@
 // 3) Atiende los botones del aviso: "Posponer 10 min" y "Hecho".
 importScripts('almacen.js', 'acciones.js');
 
-const CACHE = 'agenda-v16';
+const CACHE = 'agenda-v17';
 const POSPONER_MIN = 10;
 const ARCHIVOS = [
   '/', '/index.html', '/styles.css', '/app.js', '/parser.js', '/almacen.js', '/ajustes.js', '/acciones.js', '/categorias.js', '/asistente.js', '/avatar.js',
   '/manifest.webmanifest', '/icon.svg', '/icons/icon-192.png', '/icons/icon-512.png',
-  '/icons/icon-maskable-512.png', '/icons/badge-96.png', '/icons/apple-touch-icon.png', '/icons/favicon-48.png', '/icons/asistente.png',
+  '/icons/icon-maskable-512.png', '/icons/badge-96.png', '/icons/apple-touch-icon.png', '/icons/favicon-48.png', '/icons/asistente.png', '/icons/asistente-parpado.png',
 ];
 
 self.addEventListener('install', (e) => {

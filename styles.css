@@ -603,6 +603,26 @@ body {
   35% { transform: scale(.97); }
   100% { transform: scale(1); }
 }
+/* Parpadeo: cuadro con ojos cerrados que aparece ~120 ms (solo opacity) */
+.avatar-cabeza { position: absolute; inset: 0; display: block; border-radius: 50%; transform-origin: 50% 88%; }
+.resumen .asistente-btn .avatar-parpado { position: absolute; inset: 0; opacity: 0; box-shadow: none; background: transparent; }
+.asistente-btn.parpadea .avatar-parpado { animation: avatar-parpadeo .17s linear; }
+@keyframes avatar-parpadeo { 0%, 100% { opacity: 0; } 25%, 70% { opacity: 1; } }
+/* Cabeza: inclinar (te escucho / tocaste un botón) y asentir (tarea hecha o creada). Pivote en el cuello. */
+.asistente-btn.inclina .avatar-cabeza { animation: avatar-inclina .75s cubic-bezier(.35, .1, .3, 1); }
+@keyframes avatar-inclina {
+  0% { transform: rotate(0) translateX(0); }
+  35% { transform: rotate(-5deg) translateX(-1.5px); }
+  70% { transform: rotate(1.2deg) translateX(.5px); }
+  100% { transform: rotate(0) translateX(0); }
+}
+.asistente-btn.asiente .avatar-cabeza { animation: avatar-asiente .8s cubic-bezier(.35, .1, .3, 1); }
+@keyframes avatar-asiente {
+  0%, 100% { transform: translateY(0) rotate(0); }
+  25% { transform: translateY(3.5px) rotate(-1.5deg); }
+  50% { transform: translateY(-.5px) rotate(0); }
+  72% { transform: translateY(2.5px) rotate(-1deg); }
+}
 /* Al abrir "Tu asistente": te estoy escuchando */
 .asistente-btn.escucha .avatar-reaccion { animation: avatar-escucha .34s cubic-bezier(.25, .8, .3, 1); }
 @keyframes avatar-escucha {
@@ -629,7 +649,8 @@ body {
 .asistente-btn.pulsando .avatar-reaccion::after { animation: avatar-brillo 1.8s ease-in-out 2; }
 @keyframes avatar-brillo { 0%, 100% { opacity: 0; } 35% { opacity: .6; } }
 @media (prefers-reduced-motion: reduce) {
-  .avatar-respira, .asistente-btn.escucha .avatar-reaccion, .asistente-btn.pulsando .avatar-halo, .asistente-btn.pulsando .avatar-reaccion::after { animation: none; }
+  .avatar-respira, .asistente-btn.escucha .avatar-reaccion, .asistente-btn.pulsando .avatar-halo, .asistente-btn.pulsando .avatar-reaccion::after,
+  .asistente-btn.inclina .avatar-cabeza, .asistente-btn.asiente .avatar-cabeza { animation: none; }
   /* Sin movimiento: la atención se marca con un halo quieto y tenue */
   .asistente-btn.con-algo .avatar-halo { opacity: .5; transform: none; }
   .asistente-btn.tocado .avatar-escena { animation-duration: .2s; }
