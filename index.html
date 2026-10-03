@@ -268,6 +268,30 @@
     </form>
   </dialog>
 
+  <dialog id="hojaAsistente" class="hoja-abajo" aria-labelledby="asisTitulo">
+    <div class="hoja-cuerpo">
+      <div class="agarradera" id="asisAgarre" aria-hidden="true"><span></span></div>
+      <header class="asis-cabeza" id="asisCabeza">
+        <img src="icons/asistente.png" alt="" width="56" height="56" class="asis-avatar">
+        <div class="asis-textos">
+          <h2 id="asisTitulo">Tu asistente</h2>
+          <p id="asisFrase"></p>
+        </div>
+        <button type="button" class="cerrar-hoja" id="asisCerrar" aria-label="Cerrar">×</button>
+      </header>
+      <div class="asis-botones" id="asisBotones">
+        <button type="button" data-sec="resumen"><span class="ic">📋</span>Resumen de hoy</button>
+        <button type="button" data-sec="primero"><span class="ic">🎯</span>¿Qué hago primero?</button>
+        <button type="button" data-sec="accion"><span class="ic">⚡</span>Próxima acción</button>
+        <button type="button" data-sec="plan"><span class="ic">🗂️</span>Reorganizar mi día</button>
+        <button type="button" data-sec="atrasados"><span class="ic">⏳</span>Pendientes atrasados</button>
+        <button type="button" data-sec="despues"><span class="ic">⏰</span>Recordarme después</button>
+      </div>
+      <section class="asis-contenido" id="asisContenido" aria-live="polite"></section>
+      <button type="button" class="asis-preguntar" disabled>💬 Preguntarle algo <small>Próximamente</small></button>
+    </div>
+  </dialog>
+
   <dialog id="guiaSonido" class="hoja">
     <form method="dialog">
       <h2>Sonido con la app cerrada</h2>
@@ -296,6 +320,7 @@
   <script src="ajustes.js"></script>
   <script src="acciones.js"></script>
   <script src="categorias.js"></script>
+  <script src="asistente.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

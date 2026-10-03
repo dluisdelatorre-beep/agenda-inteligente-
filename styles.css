@@ -580,3 +580,91 @@ body {
 .prio-tile span { font-size: .8rem; color: var(--suave); }
 .prio-tile.alta strong { color: var(--tarde); }
 #vista-estadisticas .bloque { padding-top: 12px; }
+
+/* ---- La asistente es un botón ---- */
+.resumen .asistente-btn {
+  position: absolute; right: 12px; bottom: 12px; width: 88px; height: 88px; padding: 0; border: 0;
+  border-radius: 50%; background: none; cursor: pointer; -webkit-tap-highlight-color: transparent;
+}
+.resumen .asistente-btn .asistente { position: static; display: block; transition: transform .15s ease; }
+.resumen .asistente-btn:active .asistente { transform: scale(.94); }
+.resumen .asistente-btn:focus-visible { outline: 3px solid var(--oro-claro); outline-offset: 4px; }
+/* Halo discreto solo cuando hay algo vencido */
+.resumen .asistente-btn.con-algo::after {
+  content: ''; position: absolute; inset: -3px; border-radius: 50%; pointer-events: none;
+  box-shadow: 0 0 0 0 color-mix(in srgb, var(--oro-claro) 70%, transparent);
+  animation: halo 2.4s ease-out infinite;
+}
+@keyframes halo {
+  0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--oro-claro) 65%, transparent); }
+  70%, 100% { box-shadow: 0 0 0 12px color-mix(in srgb, var(--oro-claro) 0%, transparent); }
+}
+
+/* ---- Hoja inferior "Tu asistente" ---- */
+.hoja-abajo {
+  border: 0; padding: 0; margin: auto auto 0; width: 100%; max-width: 560px; max-height: 88dvh;
+  background: transparent; color: var(--tinta); overflow: visible;
+}
+.hoja-abajo::backdrop { background: rgba(0, 0, 0, .4); animation: velo .25s ease; }
+.hoja-cuerpo {
+  background: var(--papel); border-radius: 24px 24px 0 0; box-shadow: 0 -10px 40px rgba(0, 0, 0, .22);
+  max-height: 88dvh; overflow-y: auto; overscroll-behavior: contain;
+  padding: 0 16px calc(16px + env(safe-area-inset-bottom));
+  transition: transform .2s ease;
+}
+.hoja-abajo[open] .hoja-cuerpo { animation: subir .3s cubic-bezier(.2, .8, .2, 1); }
+.hoja-abajo.cerrando .hoja-cuerpo { animation: bajar .2s ease-in forwards; }
+.hoja-abajo.cerrando::backdrop { opacity: 0; transition: opacity .2s; }
+@keyframes subir { from { transform: translateY(100%); } to { transform: translateY(0); } }
+@keyframes bajar { to { transform: translateY(100%); } }
+@keyframes velo { from { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .hoja-abajo[open] .hoja-cuerpo, .hoja-abajo.cerrando .hoja-cuerpo, .resumen .asistente-btn.con-algo::after { animation: none; }
+}
+.agarradera { display: flex; justify-content: center; padding: 10px 0 4px; cursor: grab; touch-action: none; position: sticky; top: 0; background: var(--papel); z-index: 1; }
+.agarradera span { width: 42px; height: 5px; border-radius: 3px; background: var(--linea); }
+.asis-cabeza { display: flex; align-items: flex-start; gap: 12px; padding: 4px 0 12px; touch-action: none; }
+.asis-avatar { width: 56px; height: 56px; border-radius: 50%; flex: none; object-fit: cover; box-shadow: 0 0 0 2px var(--oro-claro); background: #0f3d3e; }
+.asis-textos { flex: 1; min-width: 0; }
+.asis-textos h2 { margin: 2px 0 4px; font: 600 1.2rem/1.15 Fraunces, Georgia, serif; color: var(--acento); }
+.asis-textos p { margin: 0; font-size: .95rem; line-height: 1.4; }
+.cerrar-hoja {
+  flex: none; width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--linea);
+  background: transparent; color: var(--suave); font-size: 1.3rem; line-height: 1; cursor: pointer;
+}
+.asis-botones { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.asis-botones button {
+  display: flex; align-items: center; gap: 8px; min-height: 56px; padding: 10px 12px; text-align: left;
+  border: 1px solid var(--linea); border-radius: 16px; background: var(--fondo); color: var(--tinta);
+  font: 600 .88rem/1.2 Inter, sans-serif; cursor: pointer;
+}
+.asis-botones .ic { font-size: 1.25rem; flex: none; }
+.asis-botones button.activo { border-color: var(--acento); background: var(--acento-suave); color: var(--acento); }
+.asis-botones button:focus-visible { outline: 2px solid var(--acento); outline-offset: 2px; }
+.asis-contenido { margin-top: 14px; border-top: 1px solid var(--linea); padding-top: 12px; min-height: 120px; scroll-margin-bottom: 70px; }
+.asis-contenido h3 { margin: 0 0 10px; font-size: 1rem; }
+.asis-contenido h4 { margin: 14px 0 6px; font-size: .76rem; letter-spacing: .06em; text-transform: uppercase; color: var(--suave); }
+.asis-nota { margin: 0 0 10px; color: var(--suave); font-size: .9rem; }
+.asis-recomendacion { margin: 0 0 12px; font: 600 1.05rem/1.35 Inter, sans-serif; }
+.asis-cifras { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.asis-cifras .cifra { text-align: center; background: var(--fondo); border-radius: 14px; padding: 10px 4px; display: grid; gap: 2px; }
+.asis-cifras strong { font: 600 1.5rem/1.1 Fraunces, Georgia, serif; }
+.asis-cifras span { font-size: .72rem; color: var(--suave); }
+.asis-cifras .cifra.mal strong { color: var(--tarde); }
+.asis-fila { border: 1px solid var(--linea); border-radius: 14px; padding: 10px 12px; display: grid; gap: 8px; margin-bottom: 8px; }
+.asis-fila.vencida { border-left: 4px solid var(--tarde); }
+.asis-info strong { display: block; font-weight: 600; overflow-wrap: anywhere; }
+.asis-info small { color: var(--suave); }
+.asis-fila.vencida .asis-info small { color: var(--tarde); }
+.asis-botones-fila { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+#asisElegido {
+  width: 100%; border: 1px solid var(--linea); border-radius: 12px; background: var(--fondo); color: var(--tinta);
+  font: inherit; padding: 10px; min-height: 46px; margin-bottom: 10px;
+}
+.asis-tiempos { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 10px; }
+.asis-tiempos .primario { min-height: 48px; padding: 8px 4px; border-radius: 14px; }
+.asis-preguntar {
+  width: 100%; margin-top: 12px; min-height: 48px; border: 1px dashed var(--linea); border-radius: 14px;
+  background: transparent; color: var(--suave); font: 500 .9rem Inter, sans-serif; opacity: .75;
+}
+.asis-preguntar small { margin-left: 6px; font-size: .75rem; padding: 2px 8px; border-radius: 999px; background: var(--fondo); }

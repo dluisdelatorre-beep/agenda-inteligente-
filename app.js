@@ -64,7 +64,15 @@
     avatar.src = 'icons/asistente.png';
     avatar.alt = '';
     avatar.width = 88; avatar.height = 88;
-    caja.append(avatar, hola);
+    // La asistente es un botón: abre "Tu asistente". Si hay algo vencido, hace un pulso discreto.
+    const btnAsis = document.createElement('button');
+    btnAsis.type = 'button';
+    btnAsis.className = 'asistente-btn' + (atrasados.length || pendientes.some((p) => asistente.vencido(p, ahora)) ? ' con-algo' : '');
+    btnAsis.id = 'abrirAsistente';
+    btnAsis.setAttribute('aria-label', 'Abrir tu asistente');
+    btnAsis.appendChild(avatar);
+    btnAsis.addEventListener('click', () => abrirAsistente());
+    caja.append(btnAsis, hola);
     const h2 = document.createElement('h2');
     h2.textContent = deHoy.length
       ? `Hoy tienes ${deHoy.length} ${deHoy.length === 1 ? 'pendiente' : 'pendientes'}`
@@ -384,6 +392,7 @@
     if (vistaActual === 'calendario') pintarCalendario();
     if (vistaActual === 'buscar') pintarBusqueda();
     if (vistaActual === 'estadisticas') pintarEstadisticas();
+    if ($('hojaAsistente').open) pintarAsistente();
   }
 
   // ---- Captura en lenguaje natural ----
@@ -1130,6 +1139,188 @@
     pintarAjustes();
     avisar('Apariencia restaurada');
   });
+
+  // =====================================================================
+  // TU ASISTENTE — hoja inferior con resumen, recomendación y atajos.
+  // Usa los mismos pendientes; nunca cambia horas por su cuenta.
+  // =====================================================================
+  let asisSec = 'resumen';
+  let asisSel = null; // id del pendiente elegido para "Recordarme después"
+
+  function abrirAsistente(sec) {
+    const dlg = $('hojaAsistente');
+    const r = asistente.analizar(pendientes);
+    asisSec = sec || (r.vencidos.length ? 'primero' : 'resumen');
+    asisSel = null;
+    pintarAsistente();
+    if (!dlg.open) {
+      dlg.classList.remove('cerrando');
+      dlg.querySelector('.hoja-cuerpo').style.transform = '';
+      if (typeof dlg.showModal === 'function') dlg.showModal(); else dlg.setAttribute('open', '');
+    }
+  }
+  function cerrarAsistente() {
+    const dlg = $('hojaAsistente');
+    if (!dlg.open || dlg.classList.contains('cerrando')) return;
+    const quieto = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    dlg.classList.add('cerrando');
+    setTimeout(() => { dlg.classList.remove('cerrando'); dlg.querySelector('.hoja-cuerpo').style.transform = ''; dlg.close(); }, quieto ? 0 : 200);
+  }
+
+  const filaAsis = (p, ahora, extra = {}) => {
+    const fila = document.createElement('div');
+    fila.className = 'asis-fila' + (asistente.vencido(p, ahora) ? ' vencida' : '');
+    const info = document.createElement('div');
+    info.className = 'asis-info';
+    const t = document.createElement('strong');
+    t.textContent = (p.priority === 'alta' ? '🔴 ' : '') + p.texto;
+    info.appendChild(t);
+    const c = document.createElement('small');
+    c.textContent = p.cuando ? describir(p.cuando, p.conHora) : 'Sin fecha';
+    info.appendChild(c);
+    fila.appendChild(info);
+    const zona = document.createElement('div');
+    zona.className = 'asis-botones-fila';
+    const dest = extra.accion !== false && acciones.destino(p);
+    if (dest) zona.appendChild(enlaceAccion(dest, `${acciones.TIPOS[p.actionType].icono} ${acciones.TIPOS[p.actionType].boton}`, 'accion-item'));
+    if (extra.despues !== false) {
+      zona.appendChild(boton('secundario', '⏰ Después', 'Recordarme después: ' + p.texto, () => { asisSel = p.id; asisSec = 'despues'; pintarAsistente(); }));
+    }
+    if (zona.childNodes.length) fila.appendChild(zona);
+    return fila;
+  };
+  const parrafo = (txt, clase = 'asis-nota') => { const p = document.createElement('p'); p.className = clase; p.textContent = txt; return p; };
+
+  function pintarAsistente() {
+    const ahora = new Date();
+    const r = asistente.analizar(pendientes, ahora);
+    $('asisFrase').textContent = r.frase;
+    document.querySelectorAll('#asisBotones button').forEach((b) => {
+      const activo = b.dataset.sec === asisSec;
+      b.classList.toggle('activo', activo);
+      b.setAttribute('aria-pressed', activo ? 'true' : 'false');
+    });
+    const c = $('asisContenido');
+    c.textContent = '';
+    const titulo = document.createElement('h3');
+    c.appendChild(titulo);
+
+    if (asisSec === 'resumen') {
+      titulo.textContent = 'Resumen de hoy';
+      const g = document.createElement('div');
+      g.className = 'asis-cifras';
+      [['Total hoy', r.hoy.total], ['Completados', r.hoy.hechos], ['Pendientes', r.hoy.pendientes], ['Vencidos', r.hoy.vencidos]].forEach(([t, v], i) => {
+        const d = document.createElement('div');
+        d.className = 'cifra' + (i === 3 && v ? ' mal' : '');
+        const n = document.createElement('strong'); n.textContent = v;
+        const l = document.createElement('span'); l.textContent = t;
+        d.append(n, l); g.appendChild(d);
+      });
+      c.appendChild(g);
+      const sub = document.createElement('h4'); sub.textContent = 'Próximo pendiente'; c.appendChild(sub);
+      c.appendChild(r.proximo ? filaAsis(r.proximo, ahora) : parrafo('No tienes pendientes con hora por delante.'));
+    } else if (asisSec === 'primero') {
+      titulo.textContent = '¿Qué hago primero?';
+      if (!r.primero) c.appendChild(parrafo('No tienes nada pendiente para hoy. ¡Disfruta!'));
+      else {
+        c.appendChild(parrafo(r.primero.texto, 'asis-recomendacion'));
+        c.appendChild(filaAsis(r.primero.p, ahora));
+      }
+    } else if (asisSec === 'accion') {
+      titulo.textContent = 'Próxima acción';
+      c.appendChild(r.proximaAccion ? filaAsis(r.proximaAccion, ahora)
+        : parrafo('Ningún pendiente tiene una acción lista (llamada, pago, reunión, ubicación o enlace).'));
+    } else if (asisSec === 'plan') {
+      titulo.textContent = 'Reorganizar mi día';
+      c.appendChild(parrafo('Así te conviene atenderlos. No cambié ninguna fecha ni hora: tú decides si mueves algo.'));
+      const nombres = { vencidos: '⏳ Vencidos', urgente: '🔴 Urgente', proximos: '🕒 Próximos', despues: '📌 Después' };
+      let alguno = false;
+      for (const [k, v] of Object.entries(r.plan)) {
+        if (!v.length) continue;
+        alguno = true;
+        const h = document.createElement('h4'); h.textContent = nombres[k]; c.appendChild(h);
+        v.forEach((p) => c.appendChild(filaAsis(p, ahora, { accion: false })));
+      }
+      if (!alguno) c.appendChild(parrafo('No hay nada que reorganizar hoy.'));
+    } else if (asisSec === 'atrasados') {
+      titulo.textContent = 'Pendientes atrasados';
+      if (!r.vencidos.length) c.appendChild(parrafo('No tienes pendientes atrasados.'));
+      r.vencidos.forEach((p) => c.appendChild(filaAsis(p, ahora)));
+    } else if (asisSec === 'despues') {
+      titulo.textContent = 'Recordarme después';
+      const abiertos = [...r.plan.vencidos, ...r.plan.urgente, ...r.plan.proximos, ...r.plan.despues];
+      pendientes.filter((p) => !p.hecho && !abiertos.includes(p)).sort((a, b) => new Date(a.cuando || 8.64e15) - new Date(b.cuando || 8.64e15))
+        .forEach((p) => abiertos.push(p));
+      if (!abiertos.length) { c.appendChild(parrafo('No tienes pendientes abiertos.')); return; }
+      if (!asisSel || !abiertos.some((p) => p.id === asisSel)) asisSel = (r.primero ? r.primero.p : abiertos[0]).id;
+      const sel = document.createElement('select');
+      sel.id = 'asisElegido';
+      sel.setAttribute('aria-label', 'Pendiente a recordar después');
+      abiertos.forEach((p) => {
+        const o = document.createElement('option');
+        o.value = p.id;
+        o.textContent = p.texto + (p.cuando ? ' · ' + describir(p.cuando, p.conHora) : '');
+        sel.appendChild(o);
+      });
+      sel.value = asisSel;
+      sel.addEventListener('change', () => { asisSel = sel.value; });
+      c.appendChild(sel);
+      const fila = document.createElement('div');
+      fila.className = 'asis-tiempos';
+      [['+10 min', 10], ['+30 min', 30], ['+1 hora', 60], ['Mañana', 'manana']].forEach(([t, v]) =>
+        fila.appendChild(boton('primario', t, null, () => recordarDespues(asisSel, v))));
+      c.appendChild(fila);
+      c.appendChild(parrafo('Se mueve el aviso del teléfono y del servidor. No se borra nada.'));
+    }
+  }
+
+  async function recordarDespues(id, valor) {
+    let p;
+    if (valor === 'manana') {
+      p = await almacen.cambiar(id, (x) => {
+        x.cuando = asistente.mananaDe(x).toISOString();
+        x.conHora = true; x.avisado = false; x.hecho = false;
+      });
+    } else p = await almacen.posponer(id, valor);
+    if (!p) return;
+    await recargar();
+    almacen.sincronizar(p);
+    ajustes.tocar('posponer');
+    const d = new Date(p.cuando);
+    avisar(valor === 'manana' ? `Te recuerdo mañana a las ${fmtHora(d)}` : `Te recuerdo a las ${fmtHora(d)}`);
+  }
+
+  document.querySelectorAll('#asisBotones button').forEach((b) => b.addEventListener('click', () => {
+    asisSec = b.dataset.sec;
+    pintarAsistente();
+    $('asisContenido').scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }));
+  $('asisCerrar').addEventListener('click', cerrarAsistente);
+  $('hojaAsistente').addEventListener('click', (e) => { if (e.target === $('hojaAsistente')) cerrarAsistente(); }); // tocar fuera
+  $('hojaAsistente').addEventListener('cancel', (e) => { e.preventDefault(); cerrarAsistente(); });     // botón atrás / Esc
+  // Deslizar hacia abajo desde la parte de arriba para cerrar
+  (() => {
+    const cuerpo = $('hojaAsistente').querySelector('.hoja-cuerpo');
+    let y0 = null, dy = 0;
+    const inicio = (e) => { y0 = e.clientY; dy = 0; cuerpo.style.transition = 'none'; };
+    const mover = (e) => {
+      if (y0 === null) return;
+      dy = Math.max(0, e.clientY - y0);
+      cuerpo.style.transform = `translateY(${dy}px)`;
+    };
+    const fin = () => {
+      if (y0 === null) return;
+      y0 = null;
+      cuerpo.style.transition = '';
+      if (dy > 80) cerrarAsistente(); else cuerpo.style.transform = '';
+    };
+    [$('asisAgarre'), $('asisCabeza')].forEach((el) => {
+      el.addEventListener('pointerdown', (e) => { if (e.target.closest('button')) return; el.setPointerCapture(e.pointerId); inicio(e); });
+      el.addEventListener('pointermove', mover);
+      el.addEventListener('pointerup', fin);
+      el.addEventListener('pointercancel', fin);
+    });
+  })();
 
   // Ventanita con el botón de la acción (la persona confirma: el marcador nunca se abre solo)
   function mostrarHojaAccion(id) {

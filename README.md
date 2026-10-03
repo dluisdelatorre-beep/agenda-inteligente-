@@ -23,6 +23,8 @@ En producción: https://agenda-inteligente-acevedo.vercel.app
 - Tono del recordatorio: lista de tonos con ▶ para escucharlos (Suave, Digital, Minimal, Campana, Marimba, Alerta) o una canción propia con "Elegir de mi música" (se guarda en el teléfono, suena hasta 12 s con la app abierta). Con la app cerrada suena el tono de notificaciones del teléfono; "Sonido con la app cerrada" explica paso a paso dónde cambiarlo.
 - Categorías (Trabajo, Personal, Salud, Pagos, Casa, Otros) y prioridades (Alta, Normal, Baja). Se sugieren por la frase ("urgente", "importante", "sin prisa", "pagar", "dentista"…) y se cambian en el editor. Buscar filtra por categoría.
 - Estadísticas (botón 📊 en Hoy): completados en 7 días, % de cumplimiento, pendientes y atrasados, racha de días, gráfica por día, por categoría y por prioridad.
+- Tu asistente (tocar el avatar): hoja inferior con una frase hecha con tus pendientes reales, Resumen de hoy, ¿Qué hago primero? (vencidos → prioridad alta → hora más próxima → prioridad media → resto), Próxima acción con su botón, Reorganizar mi día (solo propone, no cambia horas), Pendientes atrasados y Recordarme después (+10 min, +30 min, +1 hora, Mañana). Sin IA ni servicios externos. Si hay algo vencido, la asistente hace un pulso discreto.
+- El aviso suena también con la app abierta: la app lanza el aviso del sistema a la hora exacta y el Web Push posterior no repite el sonido.
 
 ## Cómo está hecha
 
@@ -78,4 +80,6 @@ python3 test/sprint-calendario-buscar-ajustes.py
 python3 test/acciones-pantalla.py
 python3 test/tonos-pantalla.py
 python3 test/categorias-pantalla.py
+python3 test/aviso-app-abierta.py
+python3 test/asistente-pantalla.py
 ```
