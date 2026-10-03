@@ -64,6 +64,28 @@ with sync_playwright() as p:
         .map(n => ({s: n.silent, r: n.renotify}))""")
     assert len(n3) == 1 and n3[0]["s"] is False and n3[0]["r"] is True, n3
     paso("Web Push sin aviso previo (app cerrada o en segundo plano) llega con sonido")
+
+    # Caso del teléfono real: llegó el aviso, EDITAN la hora y cierran la app → el nuevo aviso debe sonar
+    pg.evaluate("navigator.serviceWorker.ready.then(r => r.getNotifications()).then(ns => ns.forEach(n => n.close()))")
+    pg.click("#lista >> text=Llamar a Luis"); pg.wait_for_selector("#lista .editor")
+    pg.evaluate("""() => { const f = document.querySelector('#lista .editor input[type=datetime-local]');
+        const d = new Date(Date.now() + 60000); const z = (n) => String(n).padStart(2, '0');
+        f.value = `${d.getFullYear()}-${z(d.getMonth()+1)}-${z(d.getDate())}T${z(d.getHours())}:${z(d.getMinutes())}`; }""")
+    pg.click("#lista .editor .primario"); pg.wait_for_timeout(300)
+    r = pg.evaluate("almacen.leer().then(l => l.find(x => x.id === 'abierta1'))")
+    assert not r["avisado"] and "avisadoEn" not in r and "avisadoPara" not in r, r
+    paso("al editar la hora se borra el 'ya avisé' (el siguiente aviso es nuevo)")
+    pg.goto("about:blank")  # cierran la app
+    sw = ctx.service_workers[0]
+    # Llega la hora nueva: el servidor manda el Web Push
+    sw.evaluate("""async () => { const l = await almacen.leer(); const x = l.find(y => y.id === 'abierta1');
+        x.cuando = new Date(Date.now() - 1000).toISOString(); await almacen.guardar(l); }""")
+    cdp.send("ServiceWorker.deliverPushMessage", {"origin": "http://localhost:8765", "registrationId": reg_id,
+             "data": json.dumps({"id": "abierta1", "titulo": "Agenda Inteligente", "cuerpo": "Llamar a Luis"})})
+    time.sleep(1.5)
+    n4 = sw.evaluate("self.registration.getNotifications({tag: 'abierta1'}).then(ns => ns.map(n => ({s: n.silent, r: n.renotify})))")
+    assert len(n4) == 1 and n4[0]["s"] is False and n4[0]["r"] is True, n4
+    paso("con la app cerrada, el aviso de la hora editada llega con sonido")
     ctx.close()
 
 print(f"\n{ok[0]} pruebas de aviso con la app abierta pasaron")

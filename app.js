@@ -180,7 +180,7 @@
     const check = boton('check', '', p.hecho ? 'Marcar como pendiente' : 'Marcar como hecho', async () => {
       p.hecho = !p.hecho;
       p.hechoEn = p.hecho ? new Date().toISOString() : null;
-      if (!p.hecho) p.avisado = false;
+      if (!p.hecho) { p.avisado = false; delete p.avisadoEn; delete p.avisadoPara; }
       if (p.hecho) ajustes.tocar('hecho');
       await guardar(); pintar();
       almacen.sincronizar(p);
@@ -359,6 +359,7 @@
         p.conHora = false;
       }
       p.avisado = false;
+      delete p.avisadoEn; delete p.avisadoPara; // hora nueva = aviso nuevo, con sonido
       p.category = categorias.limpiarCategoria(catSel.value);
       p.priority = categorias.limpiarPrioridad(prioSel.value);
       // La acción nunca impide guardar: si un dato no es válido, se guarda sin él.
@@ -505,6 +506,7 @@
       if (new Date(p.cuando) <= ahora) {
         p.avisado = true;
         p.avisadoEn = ahora.toISOString();
+        p.avisadoPara = p.cuando; // el "ya avisé" vale solo para esta hora exacta
         cambio = true;
         const dest = acciones.destino(p);
         const botonesAviso = [{ texto: `+${POSPONER_MIN} min`, fn: () => posponer(p.id) }];
@@ -1280,6 +1282,7 @@
       p = await almacen.cambiar(id, (x) => {
         x.cuando = asistente.mananaDe(x).toISOString();
         x.conHora = true; x.avisado = false; x.hecho = false;
+        delete x.avisadoEn; delete x.avisadoPara;
       });
     } else p = await almacen.posponer(id, valor);
     if (!p) return;

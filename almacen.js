@@ -55,6 +55,7 @@
     p.conHora = true;
     p.avisado = false;
     p.hecho = false;
+    delete p.avisadoEn; delete p.avisadoPara; // el siguiente aviso vuelve a sonar
   });
 
   const marcarHecho = (id) => cambiar(id, (p) => {
