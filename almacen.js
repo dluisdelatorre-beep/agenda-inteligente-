@@ -98,7 +98,7 @@
     abiertas.forEach((c) => c.postMessage({ tipo: 'recargar' }));
   }
 
-  raiz.almacen = { leer, guardar, cambiar, posponer, marcarHecho, sincronizar, suscripcion, avisarPantallas, leerAjustes, guardarAjustes, leerTono, guardarTono, borrarTono };
+  raiz.almacen = { leer, guardar, cambiar, posponer, marcarHecho, sincronizar, suscripcion, avisarPantallas, leerAjustes, guardarAjustes, leerTono, guardarTono, borrarTono, leerContactos, guardarContactos };
 
   // ---- Preferencias (registro aparte: nunca se mezcla con los pendientes) ----
   function leerAjustes() {
@@ -106,6 +106,14 @@
   }
   function guardarAjustes(ajustes) {
     return operar('readwrite', (s) => s.put(ajustes, 'ajustes'));
+  }
+
+  // ---- Contactos: libreta privada, solo en este teléfono (nunca se manda al servidor) ----
+  function leerContactos() {
+    return operar('readonly', (s) => s.get('contactos')).then((l) => (Array.isArray(l) ? l : []));
+  }
+  function guardarContactos(lista) {
+    return operar('readwrite', (s) => s.put(lista, 'contactos'));
   }
 
   // ---- Tono propio (una canción elegida del teléfono). Misma base de datos, registro aparte. ----

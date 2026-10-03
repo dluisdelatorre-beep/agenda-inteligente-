@@ -16,7 +16,7 @@
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=17">
+  <link rel="stylesheet" href="styles.css?v=18">
   <script>
     // Aplica tema, acento, densidad y texto antes de pintar, para que no parpadee.
     try {
@@ -51,7 +51,10 @@
           <path d="m16 30 6 6 11-12" fill="none" stroke="url(#oro)" stroke-width="4.2" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
         <h1 class="nombre-app">Agenda<br>Inteligente</h1>
-        <button type="button" class="ir-stats" id="verEstadisticas" aria-label="Ver estadísticas">📊<span>Estadísticas</span></button>
+        <div class="atajos-app">
+          <button type="button" class="ir-stats" id="verContactos" aria-label="Ver contactos">👥<span>Contactos</span></button>
+          <button type="button" class="ir-stats" id="verEstadisticas" aria-label="Ver estadísticas">📊<span>Estadísticas</span></button>
+        </div>
       </header>
 
       <section class="resumen" id="resumen" aria-live="polite"></section>
@@ -79,7 +82,7 @@
         <button id="permiso" class="permiso" hidden>Activar avisos</button>
         <p id="estadoAvisos" class="estado-avisos"></p>
         <p>Toca un pendiente para editarlo. Se guardan en este dispositivo.</p>
-        <p class="version" id="version">Versión 17</p>
+        <p class="version" id="version">Versión 18</p>
       </footer>
     </section>
 
@@ -121,6 +124,25 @@
       <nav class="chips chips-cat" id="chipsCat" aria-label="Filtrar por categoría"></nav>
       <p class="conteo" id="conteo" aria-live="polite"></p>
       <section id="resultados" class="lista"></section>
+    </section>
+
+    <!-- ================= CONTACTOS ================= -->
+    <section class="vista" id="vista-contactos" data-vista="contactos" hidden>
+      <header class="encabezado">
+        <button type="button" class="volver" id="volverHoyContactos" aria-label="Regresar a Hoy">‹ Hoy</button>
+        <h1>Contactos</h1>
+      </header>
+      <div class="busqueda">
+        <label for="buscaContacto" class="oculto">Buscar contactos</label>
+        <input id="buscaContacto" type="search" placeholder="Nombre, teléfono, empresa o etiqueta" autocomplete="off" enterkeyhint="search">
+      </div>
+      <div class="contactos-botones">
+        <button type="button" class="primario" id="nuevoContacto">+ Nuevo contacto</button>
+        <button type="button" class="secundario" id="importarContactos">Importar mis contactos</button>
+      </div>
+      <p class="conteo" id="conteoContactos" aria-live="polite"></p>
+      <section id="listaContactos" class="lista-contactos"></section>
+      <p class="nota">🔒 Tus contactos se guardan solo en este teléfono. No se suben a ningún servidor y nadie más los ve.</p>
     </section>
 
     <!-- ================= ESTADÍSTICAS ================= -->
@@ -293,6 +315,118 @@
     </div>
   </dialog>
 
+  <!-- Ficha de un contacto -->
+  <dialog id="fichaContacto" class="hoja-abajo" aria-labelledby="fichaNombre">
+    <div class="hoja-cuerpo">
+      <div class="agarradera" aria-hidden="true"><span></span></div>
+      <header class="ficha-cabeza">
+        <span class="inicial" id="fichaInicial" aria-hidden="true"></span>
+        <div class="ficha-textos">
+          <h2 id="fichaNombre"></h2>
+          <p id="fichaEmpresa"></p>
+        </div>
+        <button type="button" class="estrella" id="fichaFavorito" aria-pressed="false" aria-label="Favorito">☆</button>
+        <button type="button" class="cerrar-hoja" data-cerrar aria-label="Cerrar">×</button>
+      </header>
+      <div class="ficha-acciones" id="fichaAcciones"></div>
+      <dl class="ficha-datos" id="fichaDatos"></dl>
+      <div class="ficha-cumple" id="fichaCumple" hidden>
+        <label class="fila-ajuste">
+          <span><strong>Recordarme su cumpleaños</strong><small id="fichaCumpleNota"></small></span>
+          <input type="checkbox" class="interruptor" id="fichaRecordarCumple">
+        </label>
+        <div class="segmentos" id="fichaAvisoCumple">
+          <label><input type="radio" name="avisoCumple" value="dia"><span>El mismo día</span></label>
+          <label><input type="radio" name="avisoCumple" value="antes"><span>Un día antes</span></label>
+        </div>
+      </div>
+      <h3 class="ficha-sub" id="fichaPendTitulo">Pendientes relacionados</h3>
+      <div id="fichaPendientes"></div>
+      <button type="button" class="secundario-ancho" id="fichaNuevoPend">+ Pendiente con este contacto</button>
+      <div class="fila fin ficha-pie">
+        <button type="button" class="borrar-contacto" id="fichaBorrar">Eliminar</button>
+        <button type="button" class="primario" id="fichaEditar">Editar</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Crear / editar contacto -->
+  <dialog id="editorContacto" class="hoja-abajo" aria-labelledby="editorContactoTitulo">
+    <form class="hoja-cuerpo" id="formContacto" novalidate>
+      <div class="agarradera" aria-hidden="true"><span></span></div>
+      <header class="ficha-cabeza">
+        <h2 id="editorContactoTitulo">Nuevo contacto</h2>
+        <button type="button" class="cerrar-hoja" data-cerrar aria-label="Cerrar">×</button>
+      </header>
+      <div class="campos-contacto">
+        <label>Nombre<input name="nombre" autocomplete="off" required></label>
+        <label>Apellidos<input name="apellidos" autocomplete="off"></label>
+        <label>Teléfono<input name="telefono" type="tel" inputmode="tel" autocomplete="off"></label>
+        <label>WhatsApp <small>(si es otro número)</small><input name="whatsapp" type="tel" inputmode="tel" autocomplete="off"></label>
+        <label>Correo<input name="email" type="email" inputmode="email" autocomplete="off"></label>
+        <label>Empresa<input name="empresa" autocomplete="off"></label>
+        <label>Puesto<input name="puesto" autocomplete="off"></label>
+        <label>Cumpleaños<input name="cumpleanos" type="date"></label>
+        <label class="ancho">Etiquetas <small>(separadas por coma)</small><input name="etiquetas" autocomplete="off" placeholder="cliente, familia"></label>
+        <label class="ancho">Notas<textarea name="notas" rows="3"></textarea></label>
+        <label class="check-fav"><input type="checkbox" name="favorito"> ⭐ Favorito</label>
+      </div>
+      <p class="error-form" id="errorContacto" hidden></p>
+      <div class="fila fin">
+        <button type="button" class="secundario" data-cerrar>Cancelar</button>
+        <button type="submit" class="primario">Guardar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Importar contactos -->
+  <dialog id="importarHoja" class="hoja-abajo" aria-labelledby="importarTitulo">
+    <div class="hoja-cuerpo">
+      <div class="agarradera" aria-hidden="true"><span></span></div>
+      <header class="ficha-cabeza">
+        <h2 id="importarTitulo">Importar mis contactos</h2>
+        <button type="button" class="cerrar-hoja" data-cerrar aria-label="Cerrar">×</button>
+      </header>
+      <div id="importarPaso1">
+        <p class="asis-nota">Solo se guardan los que tú elijas, y solo en este teléfono.</p>
+        <button type="button" class="primario ancho-total" id="importarAgenda" hidden>📇 Elegir de la agenda del teléfono</button>
+        <button type="button" class="secundario-ancho" id="importarArchivo">📄 Desde un archivo (.vcf o .csv)</button>
+        <input type="file" id="archivoContactos" accept=".vcf,.vcard,.csv,text/vcard,text/x-vcard,text/csv" hidden>
+        <p class="nota" id="importarNota"></p>
+      </div>
+      <div id="importarPaso2" hidden>
+        <p class="asis-nota" id="importarResumen"></p>
+        <div id="importarLista" class="importar-lista"></div>
+        <div class="fila fin">
+          <button type="button" class="secundario" id="importarAtras">Atrás</button>
+          <button type="button" class="primario" id="importarConfirmar">Importar</button>
+        </div>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- ¿Cuál persona? (cuando hay varias con el mismo nombre) -->
+  <dialog id="elegirPersona" class="hoja" aria-labelledby="elegirPersonaTitulo">
+    <form method="dialog">
+      <h2 id="elegirPersonaTitulo">¿Cuál de ellos?</h2>
+      <p id="elegirPersonaTexto"></p>
+      <div id="elegirPersonaLista" class="elegir-lista"></div>
+      <div class="fila fin"><button value="ninguno" class="secundario">Ninguno</button></div>
+    </form>
+  </dialog>
+
+  <!-- Confirmar eliminar contacto -->
+  <dialog id="confirmarBorrarContacto" class="hoja">
+    <form method="dialog">
+      <h2>¿Eliminar contacto?</h2>
+      <p id="confirmarBorrarTexto"></p>
+      <div class="fila fin">
+        <button value="no" class="secundario">Cancelar</button>
+        <button value="si" class="primario peligro">Eliminar</button>
+      </div>
+    </form>
+  </dialog>
+
   <dialog id="guiaSonido" class="hoja">
     <form method="dialog">
       <h2>Sonido con la app cerrada</h2>
@@ -316,13 +450,14 @@
     </form>
   </dialog>
 
-  <script src="parser.js?v=17"></script>
-  <script src="almacen.js?v=17"></script>
-  <script src="ajustes.js?v=17"></script>
-  <script src="acciones.js?v=17"></script>
-  <script src="categorias.js?v=17"></script>
-  <script src="asistente.js?v=17"></script>
-  <script src="avatar.js?v=17"></script>
-  <script src="app.js?v=17"></script>
+  <script src="parser.js?v=18"></script>
+  <script src="almacen.js?v=18"></script>
+  <script src="ajustes.js?v=18"></script>
+  <script src="acciones.js?v=18"></script>
+  <script src="categorias.js?v=18"></script>
+  <script src="asistente.js?v=18"></script>
+  <script src="avatar.js?v=18"></script>
+  <script src="contactos.js?v=18"></script>
+  <script src="app.js?v=18"></script>
 </body>
 </html>

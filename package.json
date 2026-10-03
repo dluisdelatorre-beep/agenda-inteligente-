@@ -4,7 +4,7 @@
   "private": true,
   "description": "Agenda que entiende lenguaje natural, con avisos Web Push. Proyecto KNOXIA de Francisco Acevedo.",
   "scripts": {
-    "test": "node test/parser.test.js && node test/acciones.test.js && node test/categorias.test.js && node test/asistente.test.js && node test/servidor.test.js"
+    "test": "node test/parser.test.js && node test/acciones.test.js && node test/categorias.test.js && node test/asistente.test.js && node test/contactos.test.js && node test/servidor.test.js"
   },
   "engines": { "node": ">=20" },
   "dependencies": {

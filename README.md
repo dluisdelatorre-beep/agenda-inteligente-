@@ -25,6 +25,8 @@ En producción: https://agenda-inteligente-acevedo.vercel.app
 - Estadísticas (botón 📊 en Hoy): completados en 7 días, % de cumplimiento, pendientes y atrasados, racha de días, gráfica por día, por categoría y por prioridad.
 - Tu asistente (tocar el avatar): hoja inferior con una frase hecha con tus pendientes reales, Resumen de hoy, ¿Qué hago primero? (vencidos → prioridad alta → hora más próxima → prioridad media → resto), Próxima acción con su botón, Reorganizar mi día (solo propone, no cambia horas), Pendientes atrasados y Recordarme después (+10 min, +30 min, +1 hora, Mañana). Sin IA ni servicios externos. Si hay algo vencido, la asistente hace un pulso discreto.
 - El aviso suena también con la app abierta: la app lanza el aviso del sistema a la hora exacta y el Web Push posterior no repite el sonido.
+- Contactos (botón 👥 en Hoy): libreta privada que vive solo en el teléfono (IndexedDB, misma base) y nunca se manda al servidor. Buscar por nombre, teléfono, empresa o etiqueta; crear, editar, eliminar con confirmación; favoritos, notas y etiquetas; Llamar · WhatsApp · Correo con enlaces estándar. La ficha muestra los pendientes relacionados. Importar desde la agenda del teléfono (Contact Picker, con permiso y eligiendo) o desde .vcf/.csv, con detección de duplicados (combinar, sustituir o conservar ambos).
+- Pendientes con persona (contact_id opcional): "Llamar a Luis mañana" se liga solo al contacto; si hay varios Luis pregunta cuál; si no existe ofrece crearlo sin salir. En el editor, "Persona / contacto" busca mientras escribes. Cumpleaños opcional por contacto (el día o un día antes).
 
 ## Cómo está hecha
 
@@ -82,4 +84,6 @@ python3 test/tonos-pantalla.py
 python3 test/categorias-pantalla.py
 python3 test/aviso-app-abierta.py
 python3 test/asistente-pantalla.py
+python3 test/avatar-pantalla.py
+python3 test/contactos-pantalla.py
 ```

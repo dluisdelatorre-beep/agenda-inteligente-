@@ -9,9 +9,12 @@
   let borrador = null;
   let editando = null; // id del pendiente que se está editando
   let vistaActual = 'hoy';
+  let contactosLista = []; // libreta privada, solo en este teléfono
+  const contactoDe = (id) => (id ? contactosLista.find((c) => c.id === id) || null : null);
 
   async function recargar() {
     pendientes = await almacen.leer();
+    try { contactosLista = await almacen.leerContactos(); } catch { contactosLista = []; }
     pintar();
   }
   async function guardar() {
@@ -218,6 +221,9 @@
         () => { editando = p.id; pintar(); }));
     }
 
+    const contacto = contactoDe(p.contact_id);
+    if (contacto) centro.appendChild(filaContacto(contacto, dest));
+
     const zona = document.createElement('div');
     zona.className = 'acciones';
     if (vencido || (p.avisado && !p.hecho)) {
@@ -232,6 +238,18 @@
 
     div.append(check, centro, zona);
     return div;
+  }
+
+  // Persona del pendiente: su nombre (abre la ficha) y Llamar · WhatsApp · Correo según sus datos
+  function filaContacto(c, destAccion) {
+    const fila = document.createElement('div');
+    fila.className = 'contacto-pend';
+    fila.appendChild(boton('persona', '👤 ' + contactos.nombreCompleto(c), 'Ver contacto ' + contactos.nombreCompleto(c), () => abrirFicha(c.id)));
+    const e = contactos.enlaces(c);
+    if (e.llamar && e.llamar !== destAccion) fila.appendChild(enlaceAccion(e.llamar, '📞', 'canal', null, 'Llamar'));
+    if (e.whatsapp) fila.appendChild(enlaceAccion(e.whatsapp, '💬', 'canal', null, 'WhatsApp'));
+    if (e.correo) fila.appendChild(enlaceAccion(e.correo, '✉️', 'canal', null, 'Correo'));
+    return fila;
   }
 
   // ---- Editar un pendiente ----
@@ -327,6 +345,42 @@
     const catSel = selDe('Categoría', [['', 'Sin categoría'], ...Object.entries(categorias.CATEGORIAS).map(([k, v]) => [k, `${v.icono} ${v.etiqueta}`])], catSugerida || '');
     const prioSel = selDe('Prioridad', Object.entries(categorias.PRIORIDADES).map(([k, v]) => [k, `${v.icono} ${v.etiqueta}`]), categorias.limpiarPrioridad(p.priority));
 
+    // ---- Persona / contacto (opcional) ----
+    let contactoSel = p.contact_id || null;
+    const secP = document.createElement('div');
+    secP.className = 'persona-editor';
+    const lblP = document.createElement('label');
+    const spP = document.createElement('span'); spP.textContent = 'Persona / contacto';
+    const inP = document.createElement('input');
+    inP.type = 'text'; inP.placeholder = 'Busca o escribe un nombre (opcional)'; inP.autocomplete = 'off';
+    inP.setAttribute('aria-label', 'Persona o contacto');
+    inP.value = contactoDe(contactoSel) ? contactos.nombreCompleto(contactoDe(contactoSel)) : '';
+    lblP.append(spP, inP);
+    const sug = document.createElement('div');
+    sug.className = 'sugerencias-persona';
+    function pintarSug() {
+      sug.textContent = '';
+      const q = inP.value.trim();
+      const actual = contactoDe(contactoSel);
+      if (actual && q === contactos.nombreCompleto(actual)) {
+        sug.appendChild(boton('quitar', 'Quitar persona', null, () => { contactoSel = null; inP.value = ''; pintarSug(); }));
+        return;
+      }
+      if (!q) return;
+      contactos.buscar(contactosLista, q).slice(0, 5).forEach((c) => {
+        sug.appendChild(boton('sug', '👤 ' + contactos.nombreCompleto(c) + (c.empresa ? ' · ' + c.empresa : ''), null, () => {
+          contactoSel = c.id; inP.value = contactos.nombreCompleto(c); pintarSug();
+        }));
+      });
+      sug.appendChild(boton('sug crear', `+ Crear nuevo contacto «${q}»`, null, () => {
+        const partes = q.split(/\s+/);
+        abrirEditorContacto({ nombre: partes.shift(), apellidos: partes.join(' ') }, (c) => { contactoSel = c.id; inP.value = contactos.nombreCompleto(c); pintarSug(); });
+      }));
+    }
+    inP.addEventListener('input', () => { contactoSel = null; pintarSug(); });
+    secP.append(lblP, sug);
+    pintarSug();
+
     const botones = document.createElement('div');
     botones.className = 'fila fin';
     const cancelar = boton('secundario', 'Cancelar', null, () => { editando = null; pintar(); });
@@ -336,7 +390,7 @@
     ok.textContent = 'Guardar cambios';
     botones.append(cancelar, ok);
 
-    form.append(t, filaFecha, filaOrden, sec, botones);
+    form.append(t, filaFecha, filaOrden, secP, sec, botones);
     form.onsubmit = async (e) => {
       e.preventDefault();
       const texto = t.value.trim();
@@ -351,6 +405,7 @@
       }
       p.avisado = false;
       delete p.avisadoEn; delete p.avisadoPara; // hora nueva = aviso nuevo, con sonido
+      p.contact_id = contactoSel;
       p.category = categorias.limpiarCategoria(catSel.value);
       p.priority = categorias.limpiarPrioridad(prioSel.value);
       // La acción nunca impide guardar: si un dato no es válido, se guarda sin él.
@@ -358,6 +413,7 @@
         actionType: tipoSel.value || null,
         contactName: nombre.value, contactPhone: tel.value, url: url.value, location: lugar.value,
       }));
+      aplicarContacto(p);
       editando = null;
       await guardar(); pintar();
       almacen.sincronizar(p);
@@ -385,6 +441,8 @@
     if (vistaActual === 'buscar') pintarBusqueda();
     if (vistaActual === 'estadisticas') pintarEstadisticas();
     if ($('hojaAsistente').open) pintarAsistente();
+    if (vistaActual === 'contactos') pintarContactos();
+    if ($('fichaContacto').open && fichaId) pintarFicha();
   }
 
   // ---- Captura en lenguaje natural ----
@@ -413,6 +471,17 @@
     }
     if (borrador.category) caja.append(' ', chipDe('chip-cat', categorias.CATEGORIAS[borrador.category]));
     if (borrador.priority !== 'normal') caja.append(' ', chipDe('chip-prio ' + borrador.priority, categorias.PRIORIDADES[borrador.priority], 'Prioridad '));
+    // ¿Menciona a alguien de tus contactos?
+    borrador.persona = contactos.resolver(extra.resto || pr.resto, contactosLista);
+    borrador.contact_id = borrador.persona.candidatos.length === 1 ? borrador.persona.candidatos[0].id : null;
+    if (borrador.persona.nombre) {
+      const chip = document.createElement('span');
+      chip.className = 'chip-persona';
+      const n = borrador.persona.candidatos.length;
+      chip.textContent = n === 1 ? '👤 ' + contactos.nombreCompleto(borrador.persona.candidatos[0])
+        : n > 1 ? `👤 ¿Cuál ${borrador.persona.nombre}? (${n})` : `👤 ${borrador.persona.nombre} (nuevo)`;
+      caja.append(' ', chip);
+    }
   });
   function chipDe(clase, d, antes = '') {
     const c = document.createElement('span');
@@ -435,7 +504,10 @@
       ...acciones.normalizar(borrador.accion || {}),
       category: categorias.limpiarCategoria(borrador.category),
       priority: categorias.limpiarPrioridad(borrador.priority),
+      contact_id: borrador.contact_id || null,
     };
+    aplicarContacto(nuevo);
+    const persona = borrador.persona || { nombre: '', candidatos: [] };
     pendientes.push(nuevo);
     await guardar();
     entrada.value = '';
@@ -446,11 +518,61 @@
     almacen.sincronizar(nuevo);
     ajustes.tocar('crear');
     avatarAsistente.reaccionar('success');
+    // Varias personas con el mismo nombre: no adivinamos, preguntamos
+    if (!nuevo.contact_id && persona.candidatos.length > 1) {
+      const elegido = await elegirPersona(persona.nombre, persona.candidatos, nuevo.texto);
+      if (elegido) await asociarContacto(nuevo.id, elegido.id);
+    }
     const falta = nuevo.actionType && !acciones.destino(nuevo);
     const ofrecer = { llamar: 'Asociar contacto', pago: 'Agregar enlace de pago', reunion: 'Agregar enlace', ubicacion: 'Agregar dirección', enlace: 'Agregar enlace' };
-    if (falta) avisar('Guardado', { texto: ofrecer[nuevo.actionType], fn: () => { editando = nuevo.id; pintar(); } });
+    if (!nuevo.contact_id && persona.nombre && !persona.candidatos.length) {
+      // No existe: se ofrece crearlo sin salir de lo que estabas haciendo
+      const crear = { texto: `+ Crear contacto «${persona.nombre}»`, fn: () => abrirEditorContacto({ nombre: persona.nombre }, (c) => asociarContacto(nuevo.id, c.id)) };
+      avisar('Guardado', falta ? [{ texto: ofrecer[nuevo.actionType], fn: () => { editando = nuevo.id; pintar(); } }, crear] : crear);
+    } else if (falta) avisar('Guardado', { texto: ofrecer[nuevo.actionType], fn: () => { editando = nuevo.id; pintar(); } });
     else avisar('Guardado');
   });
+
+  // Copia al pendiente los datos útiles del contacto (por ejemplo, el teléfono para "Llamar ahora")
+  function aplicarContacto(p) {
+    const c = contactoDe(p.contact_id);
+    if (!c) return p;
+    if (p.actionType === 'llamar') {
+      Object.assign(p, acciones.normalizar({ ...p, contactName: contactos.nombreCompleto(c), contactPhone: p.contactPhone || c.telefono || c.whatsapp }));
+    }
+    return p;
+  }
+  async function asociarContacto(idPend, idContacto) {
+    const p = pendientes.find((x) => x.id === idPend);
+    if (!p) return;
+    p.contact_id = idContacto;
+    aplicarContacto(p);
+    await guardar(); pintar();
+    const c = contactoDe(idContacto);
+    if (c) avisar(`Asociado a ${contactos.nombreCompleto(c)}`);
+  }
+  // Pregunta "¿Cuál de ellos?" y devuelve el contacto elegido (o null)
+  function elegirPersona(nombre, candidatos, texto) {
+    const dlg = $('elegirPersona');
+    if (typeof dlg.showModal !== 'function') return Promise.resolve(null);
+    $('elegirPersonaTitulo').textContent = `¿Cuál ${nombre}?`;
+    $('elegirPersonaTexto').textContent = `Tienes ${candidatos.length} contactos con ese nombre. ¿A quién se refiere «${texto}»?`;
+    const lista = $('elegirPersonaLista');
+    lista.textContent = '';
+    candidatos.forEach((c) => {
+      const b = document.createElement('button');
+      b.value = c.id; b.className = 'elegir-opcion';
+      const n = document.createElement('strong'); n.textContent = contactos.nombreCompleto(c);
+      const d = document.createElement('small'); d.textContent = [c.empresa, c.telefono].filter(Boolean).join(' · ') || 'Sin más datos';
+      b.append(n, d);
+      lista.appendChild(b);
+    });
+    return new Promise((ok) => {
+      dlg.returnValue = '';
+      dlg.addEventListener('close', () => ok(candidatos.find((c) => c.id === dlg.returnValue) || null), { once: true });
+      dlg.showModal();
+    });
+  }
 
   // ---- Filtros ----
   function marcarFiltro() {
@@ -479,12 +601,13 @@
   }
 
   // Enlace que abre la acción (marcador, pago, reunión, mapa). Nada se abre solo: la persona toca.
-  function enlaceAccion(href, texto, clase, alTocar) {
+  function enlaceAccion(href, texto, clase, alTocar, etiqueta) {
     const a = document.createElement('a');
     a.className = clase;
     a.href = href;
     a.textContent = texto;
-    if (!href.startsWith('tel:')) { a.target = '_blank'; a.rel = 'noopener noreferrer'; }
+    if (etiqueta) { a.setAttribute('aria-label', etiqueta); a.title = etiqueta; }
+    if (!href.startsWith('tel:') && !href.startsWith('mailto:')) { a.target = '_blank'; a.rel = 'noopener noreferrer'; }
     if (alTocar) a.addEventListener('click', alTocar);
     return a;
   }
@@ -639,7 +762,7 @@
   // Hoy es la base. Salir de Hoy agrega un paso al historial, así el botón
   // "atrás" del teléfono regresa a Hoy como en una app nativa.
   // =====================================================================
-  const VISTAS = ['hoy', 'calendario', 'buscar', 'ajustes', 'estadisticas'];
+  const VISTAS = ['hoy', 'calendario', 'buscar', 'ajustes', 'estadisticas', 'contactos'];
 
   function mostrarVista(vista) {
     if (!VISTAS.includes(vista)) vista = 'hoy';
@@ -654,6 +777,7 @@
     window.scrollTo(0, 0);
     if (vista === 'ajustes') pintarAjustes(); else pintar();
     if (vista === 'estadisticas') pintarEstadisticas();
+    if (vista === 'contactos') pintarContactos();
   }
 
   function navegar(vista) {
@@ -810,7 +934,8 @@
       .filter((p) => filtroCat === 'todas' || p.category === filtroCat)
       .filter((p) => {
         const cat = categorias.CATEGORIAS[p.category];
-        const t = normalizar(p.texto + ' ' + (cat ? cat.etiqueta : ''));
+        const per = contactoDe(p.contact_id);
+        const t = normalizar(p.texto + ' ' + (cat ? cat.etiqueta : '') + ' ' + (per ? contactos.nombreCompleto(per) : ''));
         return palabras.every((w) => t.includes(w));
       })
       .sort((a, b) => {
@@ -1318,6 +1443,377 @@
     });
   })();
 
+  // =====================================================================
+  // CONTACTOS — libreta privada en este teléfono, ligada a los pendientes
+  // =====================================================================
+  async function guardarContactos() {
+    contactosLista = contactosLista.map((c) => c); // misma lista; solo se guarda
+    await almacen.guardarContactos(contactosLista);
+  }
+  const pendientesDe = (id) => pendientes.filter((p) => p.contact_id === id)
+    .sort((a, b) => (a.hecho - b.hecho) || (new Date(a.cuando || 8.64e15) - new Date(b.cuando || 8.64e15)));
+
+  function pintarContactos() {
+    const lista = $('listaContactos');
+    lista.textContent = '';
+    const encontrados = contactos.buscar(contactosLista, $('buscaContacto').value);
+    const q = $('buscaContacto').value.trim();
+    $('conteoContactos').textContent = contactosLista.length
+      ? (q ? `${encontrados.length} de ${contactosLista.length}` : `${contactosLista.length} ${contactosLista.length === 1 ? 'contacto' : 'contactos'}`) : '';
+    if (!contactosLista.length) {
+      const p = document.createElement('p'); p.className = 'nada';
+      p.textContent = 'Aún no tienes contactos. Crea uno o importa los de tu teléfono.';
+      lista.appendChild(p); return;
+    }
+    if (!encontrados.length) {
+      const p = document.createElement('p'); p.className = 'nada'; p.textContent = 'No encontré a nadie con eso.';
+      lista.appendChild(p); return;
+    }
+    for (const c of encontrados) {
+      const fila = document.createElement('div');
+      fila.className = 'contacto';
+      const abrir = document.createElement('button');
+      abrir.type = 'button'; abrir.className = 'contacto-abrir';
+      abrir.setAttribute('aria-label', 'Ver ' + contactos.nombreCompleto(c));
+      const ini = document.createElement('span'); ini.className = 'inicial'; ini.textContent = contactos.iniciales(c);
+      const txt = document.createElement('span'); txt.className = 'contacto-txt';
+      const n = document.createElement('strong'); n.textContent = (c.favorito ? '⭐ ' : '') + contactos.nombreCompleto(c);
+      const d = document.createElement('small');
+      const np = pendientesDe(c.id).filter((p) => !p.hecho).length;
+      d.textContent = [c.empresa, c.telefono || c.email, np ? `📌 ${np} pendiente${np === 1 ? '' : 's'}` : ''].filter(Boolean).join(' · ');
+      txt.append(n, d);
+      abrir.append(ini, txt);
+      abrir.addEventListener('click', () => abrirFicha(c.id));
+      fila.appendChild(abrir);
+      const e = contactos.enlaces(c);
+      const can = document.createElement('div'); can.className = 'canales';
+      if (e.llamar) can.appendChild(enlaceAccion(e.llamar, '📞', 'canal', null, 'Llamar a ' + c.nombre));
+      if (e.whatsapp) can.appendChild(enlaceAccion(e.whatsapp, '💬', 'canal', null, 'WhatsApp a ' + c.nombre));
+      if (e.correo) can.appendChild(enlaceAccion(e.correo, '✉️', 'canal', null, 'Correo a ' + c.nombre));
+      fila.appendChild(can);
+      lista.appendChild(fila);
+    }
+  }
+  $('buscaContacto').addEventListener('input', pintarContactos);
+  $('verContactos').addEventListener('click', () => navegar('contactos'));
+  $('volverHoyContactos').addEventListener('click', () => navegar('hoy'));
+  $('nuevoContacto').addEventListener('click', () => abrirEditorContacto({}, (c) => abrirFicha(c.id)));
+
+  // Cerrar hojas: botón ×/Cancelar o tocando fuera
+  ['fichaContacto', 'editorContacto', 'importarHoja'].forEach((id) => {
+    const dlg = $(id);
+    dlg.addEventListener('click', (e) => { if (e.target === dlg || e.target.closest('[data-cerrar]')) dlg.close(); });
+  });
+
+  // ---- Ficha ----
+  let fichaId = null;
+  function abrirFicha(id) {
+    fichaId = id;
+    if (!contactoDe(id)) return;
+    pintarFicha();
+    const dlg = $('fichaContacto');
+    if (!dlg.open) dlg.showModal();
+  }
+  function pintarFicha() {
+    const c = contactoDe(fichaId);
+    if (!c) { $('fichaContacto').close(); return; }
+    $('fichaInicial').textContent = contactos.iniciales(c);
+    $('fichaNombre').textContent = contactos.nombreCompleto(c);
+    $('fichaEmpresa').textContent = [c.puesto, c.empresa].filter(Boolean).join(' · ');
+    const fav = $('fichaFavorito');
+    fav.textContent = c.favorito ? '★' : '☆';
+    fav.setAttribute('aria-pressed', c.favorito ? 'true' : 'false');
+    fav.classList.toggle('activa', c.favorito);
+    // Llamar · WhatsApp · Correo (abren la app del teléfono; nada se manda solo)
+    const acc = $('fichaAcciones');
+    acc.textContent = '';
+    const e = contactos.enlaces(c);
+    if (e.llamar) acc.appendChild(enlaceAccion(e.llamar, '📞 Llamar', 'accion-item'));
+    if (e.whatsapp) acc.appendChild(enlaceAccion(e.whatsapp, '💬 WhatsApp', 'accion-item'));
+    if (e.correo) acc.appendChild(enlaceAccion(e.correo, '✉️ Correo', 'accion-item'));
+    if (!acc.childNodes.length) acc.appendChild(Object.assign(document.createElement('p'), { className: 'asis-nota', textContent: 'Sin teléfono ni correo. Toca Editar para agregarlos.' }));
+    const dl = $('fichaDatos');
+    dl.textContent = '';
+    const dato = (t, v) => { if (!v) return; const a = document.createElement('dt'); a.textContent = t; const b = document.createElement('dd'); b.textContent = v; dl.append(a, b); };
+    dato('Teléfono', c.telefono);
+    dato('WhatsApp', c.whatsapp);
+    dato('Correo', c.email);
+    if (c.cumpleanos) {
+      const [y, m, d] = c.cumpleanos.startsWith('--') ? [null, ...c.cumpleanos.slice(2).split('-')] : c.cumpleanos.split('-');
+      dato('Cumpleaños', new Date(2000, +m - 1, +d).toLocaleDateString('es-MX', { day: 'numeric', month: 'long' }) + (y ? ` (${y})` : ''));
+    }
+    dato('Etiquetas', (c.etiquetas || []).map((t) => '#' + t).join('  '));
+    dato('Notas', c.notas);
+    // Cumpleaños (opcional)
+    $('fichaCumple').hidden = !c.cumpleanos;
+    if (c.cumpleanos) {
+      $('fichaRecordarCumple').checked = !!c.recordarCumple;
+      $('fichaAvisoCumple').hidden = !c.recordarCumple;
+      document.querySelectorAll('#fichaAvisoCumple input').forEach((r) => { r.checked = r.value === (c.avisoCumple || 'dia'); });
+      const prox = contactos.proximoCumple(c);
+      $('fichaCumpleNota').textContent = c.recordarCumple && prox
+        ? `Te aviso el ${prox.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' })} a las 9:00 a.m.`
+        : 'Desactivado. Actívalo si quieres un aviso.';
+    }
+    // Pendientes relacionados
+    const rel = pendientesDe(c.id);
+    const abiertos = rel.filter((p) => !p.hecho).length;
+    $('fichaPendTitulo').textContent = `📌 ${abiertos} ${abiertos === 1 ? 'pendiente relacionado' : 'pendientes relacionados'}`;
+    const cont = $('fichaPendientes');
+    cont.textContent = '';
+    if (!rel.length) cont.appendChild(Object.assign(document.createElement('p'), { className: 'asis-nota', textContent: 'Todavía no hay pendientes con esta persona.' }));
+    const ahora = new Date();
+    rel.slice(0, 20).forEach((p) => {
+      const f = document.createElement('div');
+      f.className = 'asis-fila' + (p.hecho ? ' hecha' : asistente.vencido(p, ahora) ? ' vencida' : '');
+      const info = document.createElement('div'); info.className = 'asis-info';
+      const t = document.createElement('strong'); t.textContent = (p.hecho ? '✓ ' : '') + p.texto;
+      const w = document.createElement('small'); w.textContent = p.cuando ? describir(p.cuando, p.conHora) : 'Sin fecha';
+      info.append(t, w);
+      f.appendChild(info);
+      if (!p.hecho) {
+        const z = document.createElement('div'); z.className = 'asis-botones-fila';
+        const dest = acciones.destino(p);
+        if (dest) z.appendChild(enlaceAccion(dest, `${acciones.TIPOS[p.actionType].icono} ${acciones.TIPOS[p.actionType].boton}`, 'accion-item'));
+        z.appendChild(boton('secundario', '✓ Completar', 'Completar ' + p.texto, async () => {
+          p.hecho = true; p.hechoEn = new Date().toISOString();
+          ajustes.tocar('hecho'); avatarAsistente.reaccionar('success');
+          await guardar(); pintar(); almacen.sincronizar(p);
+        }));
+        f.appendChild(z);
+      }
+      cont.appendChild(f);
+    });
+  }
+  $('fichaFavorito').addEventListener('click', async () => {
+    const c = contactoDe(fichaId); if (!c) return;
+    c.favorito = !c.favorito; c.updated_at = new Date().toISOString();
+    await guardarContactos(); pintarFicha(); if (vistaActual === 'contactos') pintarContactos();
+  });
+  $('fichaRecordarCumple').addEventListener('change', async (ev) => {
+    const c = contactoDe(fichaId); if (!c) return;
+    c.recordarCumple = ev.target.checked; c.updated_at = new Date().toISOString();
+    await guardarContactos(); await asegurarCumples(); pintarFicha();
+    if (c.recordarCumple) avisar(`Listo: te recuerdo el cumpleaños de ${c.nombre}`);
+  });
+  $('fichaAvisoCumple').addEventListener('change', async (ev) => {
+    const c = contactoDe(fichaId); if (!c) return;
+    c.avisoCumple = ev.target.value; c.updated_at = new Date().toISOString();
+    await guardarContactos(); await asegurarCumples(); pintarFicha();
+  });
+  $('fichaEditar').addEventListener('click', () => { const c = contactoDe(fichaId); if (c) abrirEditorContacto(c, () => pintarFicha()); });
+  $('fichaNuevoPend').addEventListener('click', () => {
+    const c = contactoDe(fichaId); if (!c) return;
+    $('fichaContacto').close();
+    if (vistaActual !== 'hoy') navegar('hoy');
+    setTimeout(() => {
+      entrada.value = (c.telefono ? 'Llamar a ' : 'Ver a ') + contactos.nombreCompleto(c) + ' ';
+      entrada.dispatchEvent(new Event('input'));
+      $('captura').scrollIntoView({ behavior: 'smooth', block: 'center' });
+      entrada.focus({ preventScroll: true });
+      entrada.setSelectionRange(entrada.value.length, entrada.value.length);
+    }, 150);
+  });
+  $('fichaBorrar').addEventListener('click', async () => {
+    const c = contactoDe(fichaId); if (!c) return;
+    const dlg = $('confirmarBorrarContacto');
+    const n = pendientesDe(c.id).length;
+    $('confirmarBorrarTexto').textContent = `Se eliminará a ${contactos.nombreCompleto(c)} de tus contactos.` +
+      (n ? ` Sus ${n} pendiente${n === 1 ? '' : 's'} se quedan, solo sin persona asociada.` : '');
+    dlg.returnValue = '';
+    const si = await new Promise((ok) => { dlg.addEventListener('close', () => ok(dlg.returnValue === 'si'), { once: true }); dlg.showModal(); });
+    if (!si) return;
+    contactosLista = contactosLista.filter((x) => x.id !== c.id);
+    // Sus pendientes se conservan; se quitan solo los avisos de cumpleaños aún no hechos
+    pendientes = pendientes.filter((p) => !(p.cumpleDe === c.id && !p.hecho));
+    pendientes.forEach((p) => { if (p.contact_id === c.id) p.contact_id = null; });
+    await guardarContactos(); await guardar();
+    $('fichaContacto').close();
+    pintar(); if (vistaActual === 'contactos') pintarContactos();
+    avisar('Contacto eliminado');
+  });
+
+  // ---- Crear / editar ----
+  let alGuardarContacto = null;
+  let editandoContacto = null;
+  function abrirEditorContacto(datos, alGuardar) {
+    const dlg = $('editorContacto');
+    const f = $('formContacto');
+    editandoContacto = datos && datos.id ? datos.id : null;
+    alGuardarContacto = alGuardar || null;
+    $('editorContactoTitulo').textContent = editandoContacto ? 'Editar contacto' : 'Nuevo contacto';
+    for (const k of ['nombre', 'apellidos', 'telefono', 'whatsapp', 'email', 'empresa', 'puesto', 'notas']) f.elements[k].value = (datos && datos[k]) || '';
+    const cu = datos && datos.cumpleanos ? datos.cumpleanos : '';
+    f.elements.cumpleanos.value = /^\d{4}-/.test(cu) ? cu : cu.startsWith('--') ? '2000' + cu.slice(1) : '';
+    f.elements.etiquetas.value = ((datos && datos.etiquetas) || []).join(', ');
+    f.elements.favorito.checked = !!(datos && datos.favorito);
+    $('errorContacto').hidden = true;
+    dlg.showModal();
+    f.elements[datos && datos.nombre ? 'telefono' : 'nombre'].focus(); // en el momento (un foco tardío puede robar lo que escribes)
+  }
+  $('formContacto').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const f = e.target;
+    const v = Object.fromEntries(['nombre', 'apellidos', 'telefono', 'whatsapp', 'email', 'empresa', 'puesto', 'cumpleanos', 'notas', 'etiquetas'].map((k) => [k, f.elements[k].value]));
+    v.favorito = f.elements.favorito.checked;
+    const previo = contactoDe(editandoContacto);
+    const c = contactos.normalizar({ ...(previo || {}), ...v, id: previo ? previo.id : undefined });
+    const err = $('errorContacto');
+    if (!contactos.valido(c)) { err.textContent = 'Escribe al menos el nombre.'; err.hidden = false; return; }
+    if (f.elements.telefono.value.trim() && !c.telefono) { err.textContent = 'Revisa el teléfono: debe tener entre 7 y 15 dígitos.'; err.hidden = false; return; }
+    if (f.elements.email.value.trim() && !c.email) { err.textContent = 'Revisa el correo.'; err.hidden = false; return; }
+    if (!previo) {
+      const dup = contactos.duplicados(c, contactosLista);
+      if (dup.length) {
+        err.textContent = `Ya tienes a ${contactos.nombreCompleto(dup[0])} con ese teléfono o correo. Se guardará aparte; si es la misma persona, mejor edítala.`;
+        if (err.hidden) { err.hidden = false; return; } // primer intento: avisar; segundo: guardar igual
+      }
+    }
+    if (previo) contactosLista = contactosLista.map((x) => (x.id === c.id ? c : x)); else contactosLista.push(c);
+    await guardarContactos();
+    // Si cambió el teléfono, los pendientes de llamada con esta persona lo usan
+    pendientes.filter((p) => p.contact_id === c.id && !p.hecho).forEach(aplicarContacto);
+    await guardar();
+    await asegurarCumples();
+    $('editorContacto').close();
+    const cb = alGuardarContacto; alGuardarContacto = null;
+    // Si estás editando un pendiente, no se repinta la lista (así no pierdes lo que llevas escrito)
+    if (!editando) pintar();
+    if (vistaActual === 'contactos') pintarContactos();
+    if ($('fichaContacto').open) pintarFicha();
+    avisar(previo ? 'Contacto actualizado' : 'Contacto guardado');
+    if (cb) cb(c);
+  });
+
+  // ---- Importar (con permiso y eligiendo cuáles) ----
+  const hayAgenda = 'contacts' in navigator && 'ContactsManager' in window && typeof navigator.contacts.select === 'function';
+  let porImportar = [];
+  $('importarContactos').addEventListener('click', () => {
+    $('importarPaso1').hidden = false; $('importarPaso2').hidden = true;
+    $('importarAgenda').hidden = !hayAgenda;
+    $('importarNota').textContent = hayAgenda
+      ? 'Al elegir de la agenda, tu teléfono te pide permiso y tú marcas a quién compartir.'
+      : 'Este navegador no deja leer la agenda del teléfono. Exporta tus contactos como archivo .vcf o .csv (desde la app Contactos o Google Contacts) y elígelo aquí.';
+    $('importarHoja').showModal();
+  });
+  $('importarAgenda').addEventListener('click', async () => {
+    try {
+      const props = await navigator.contacts.getProperties().catch(() => ['name', 'tel', 'email']);
+      const quiero = ['name', 'tel', 'email'].filter((p) => props.includes(p));
+      const elegidos = await navigator.contacts.select(quiero, { multiple: true });
+      if (!elegidos || !elegidos.length) return;
+      prepararImportacion(elegidos.map((x) => {
+        const partes = String((x.name && x.name[0]) || '').trim().split(/\s+/);
+        return { nombre: partes.shift() || '', apellidos: partes.join(' '), telefono: x.tel && x.tel[0], email: x.email && x.email[0] };
+      }));
+    } catch { avisar('No se pudo abrir la agenda del teléfono. Prueba con un archivo .vcf o .csv.'); }
+  });
+  $('importarArchivo').addEventListener('click', () => $('archivoContactos').click());
+  $('archivoContactos').addEventListener('change', async (ev) => {
+    const f = ev.target.files && ev.target.files[0];
+    ev.target.value = '';
+    if (!f) return;
+    if (f.size > 5 * 1024 * 1024) { avisar('El archivo es muy grande (más de 5 MB).'); return; }
+    const txt = await f.text();
+    const esVcf = /\.(vcf|vcard)$/i.test(f.name) || /BEGIN:VCARD/i.test(txt);
+    const crudos = esVcf ? contactos.parseVCF(txt) : contactos.parseCSV(txt);
+    if (!crudos.length) { avisar('No encontré contactos en ese archivo. Revisa que sea .vcf o .csv.'); return; }
+    prepararImportacion(crudos);
+  });
+  function prepararImportacion(crudos) {
+    porImportar = crudos.map((x) => contactos.normalizar(x)).filter(contactos.valido).slice(0, 2000).map((c) => {
+      const dup = contactos.duplicados(c, contactosLista)[0] || null;
+      return { c, dup, incluir: true, modo: dup ? 'combinar' : 'nuevo' };
+    });
+    $('importarPaso1').hidden = true; $('importarPaso2').hidden = false;
+    pintarImportacion();
+  }
+  function pintarImportacion() {
+    const dups = porImportar.filter((x) => x.dup).length;
+    $('importarResumen').textContent = `Encontré ${porImportar.length} ${porImportar.length === 1 ? 'contacto' : 'contactos'}` +
+      (dups ? `. ${dups} ya ${dups === 1 ? 'existe' : 'existen'} en tu agenda: elige qué hacer con ${dups === 1 ? 'él' : 'ellos'}.` : '. Desmarca los que no quieras.');
+    const cont = $('importarLista');
+    cont.textContent = '';
+    porImportar.forEach((x, i) => {
+      const fila = document.createElement('div');
+      fila.className = 'imp-fila' + (x.dup ? ' dup' : '');
+      const lab = document.createElement('label');
+      const chk = document.createElement('input'); chk.type = 'checkbox'; chk.checked = x.incluir;
+      chk.addEventListener('change', () => { x.incluir = chk.checked; actualizarBotonImportar(); });
+      const t = document.createElement('span');
+      const n = document.createElement('strong'); n.textContent = contactos.nombreCompleto(x.c);
+      const d = document.createElement('small'); d.textContent = [x.c.telefono, x.c.email].filter(Boolean).join(' · ') || 'Sin teléfono ni correo';
+      t.append(n, d); lab.append(chk, t); fila.appendChild(lab);
+      if (x.dup) {
+        const aviso = document.createElement('small'); aviso.className = 'imp-dup';
+        aviso.textContent = `Parece ser ${contactos.nombreCompleto(x.dup)}, que ya tienes.`;
+        const sel = document.createElement('select');
+        sel.setAttribute('aria-label', 'Qué hacer con ' + contactos.nombreCompleto(x.c));
+        [['combinar', 'Combinar (completar datos)'], ['sustituir', 'Sustituir por el nuevo'], ['ambos', 'Conservar ambos']].forEach(([v, txt]) => {
+          const o = document.createElement('option'); o.value = v; o.textContent = txt; sel.appendChild(o);
+        });
+        sel.value = x.modo;
+        sel.addEventListener('change', () => { x.modo = sel.value; });
+        fila.append(aviso, sel);
+      }
+      cont.appendChild(fila);
+    });
+    actualizarBotonImportar();
+  }
+  function actualizarBotonImportar() {
+    const n = porImportar.filter((x) => x.incluir).length;
+    $('importarConfirmar').textContent = n ? `Importar ${n}` : 'Importar';
+    $('importarConfirmar').disabled = !n;
+  }
+  $('importarAtras').addEventListener('click', () => { $('importarPaso1').hidden = false; $('importarPaso2').hidden = true; });
+  $('importarConfirmar').addEventListener('click', async () => {
+    let nuevos = 0, combinados = 0, sustituidos = 0;
+    for (const x of porImportar.filter((y) => y.incluir)) {
+      const existente = x.dup && contactoDe(x.dup.id);
+      if (existente && x.modo === 'combinar') {
+        const r = contactos.combinar(existente, x.c);
+        contactosLista = contactosLista.map((c) => (c.id === r.id ? r : c)); combinados++;
+      } else if (existente && x.modo === 'sustituir') {
+        const r = contactos.normalizar({ ...x.c, id: existente.id, created_at: existente.created_at, favorito: existente.favorito || x.c.favorito });
+        contactosLista = contactosLista.map((c) => (c.id === r.id ? r : c)); sustituidos++;
+      } else {
+        contactosLista.push(x.c); nuevos++;
+      }
+    }
+    await guardarContactos();
+    porImportar = [];
+    $('importarHoja').close();
+    if (vistaActual !== 'contactos') navegar('contactos'); else pintarContactos();
+    avisar(`Importados: ${nuevos} ${nuevos === 1 ? "nuevo" : "nuevos"}` + (combinados ? `, ${combinados} combinados` : '') + (sustituidos ? `, ${sustituidos} sustituidos` : ''));
+  });
+
+  // ---- Cumpleaños (solo de quien tú actives) ----
+  async function asegurarCumples() {
+    const ahora = new Date();
+    let cambio = false;
+    for (const c of contactosLista) {
+      const abiertos = pendientes.filter((p) => p.cumpleDe === c.id && !p.hecho);
+      if (!c.recordarCumple || !c.cumpleanos) {
+        if (abiertos.length) { pendientes = pendientes.filter((p) => !abiertos.includes(p)); abiertos.forEach((p) => almacen.sincronizar({ ...p, hecho: true })); cambio = true; }
+        continue;
+      }
+      const cuando = contactos.proximoCumple(c, ahora);
+      if (!cuando) continue;
+      const texto = (c.avisoCumple === 'antes' ? 'Mañana cumple años ' : 'Cumpleaños de ') + contactos.nombreCompleto(c) + ' 🎂';
+      const datos = { texto, cuando: cuando.toISOString(), conHora: true, contact_id: c.id, category: 'personal' };
+      if (c.telefono) Object.assign(datos, acciones.normalizar({ actionType: 'llamar', contactName: contactos.nombreCompleto(c), contactPhone: c.telefono }));
+      const ya = abiertos[0];
+      if (ya) {
+        if (ya.cuando !== datos.cuando || ya.texto !== datos.texto) { Object.assign(ya, datos, { avisado: false }); delete ya.avisadoEn; delete ya.avisadoPara; almacen.sincronizar(ya); cambio = true; }
+      } else {
+        const nuevo = { id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), hecho: false, avisado: false,
+          creado: ahora.toISOString(), priority: 'normal', cumpleDe: c.id, ...datos };
+        pendientes.push(nuevo); almacen.sincronizar(nuevo); cambio = true;
+      }
+    }
+    if (cambio) { await guardar(); pintar(); }
+  }
+
   // Ventanita con el botón de la acción (la persona confirma: el marcador nunca se abre solo)
   function mostrarHojaAccion(id) {
     const p = pendientes.find((x) => x.id === id);
@@ -1358,7 +1854,8 @@
   // Al abrir siempre empieza en Hoy (aunque la dirección traiga #calendario, etc.)
   if (location.hash) history.replaceState(null, '', location.pathname + location.search);
 
-  Promise.all([ajustes.cargar(), recargar()]).then(() => {
+  Promise.all([ajustes.cargar(), recargar()]).then(async () => {
+    await asegurarCumples(); // si ya pasó un cumpleaños, prepara el del próximo año
     revisarRecordatorios();
     estadoAvisos();
     // Atajo "Nuevo pendiente" del ícono: abre directo en el campo de captura

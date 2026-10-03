@@ -85,7 +85,7 @@ with sync_playwright() as p:
     todo = pg.evaluate("almacen.leer().then(l => JSON.stringify(l))")
     assert "MiClave123" not in todo and "miusuario" not in todo
     pago = pg.evaluate("almacen.leer().then(l => l.find(x => x.texto === 'Pagar internet'))")
-    assert set(pago) <= {"id","texto","cuando","conHora","hecho","avisado","creado","actionType","actionValue","contactName","contactPhone","url","location","hechoEn","category","priority"}, pago.keys()
+    assert set(pago) <= {"id","texto","cuando","conHora","hecho","avisado","creado","actionType","actionValue","contactName","contactPhone","url","location","hechoEn","category","priority","contact_id"}, pago.keys()
     paso("no se guardan credenciales: el usuario y la contraseña del enlace se descartan")
     acc = pg.evaluate("acciones.botonesNotificacion(" + json.dumps(pago) + ", 2).map(b => b.title)")
     assert acc == ["Abrir pago", "Posponer 10 min"], acc

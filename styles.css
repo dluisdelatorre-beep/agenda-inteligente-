@@ -726,3 +726,104 @@ body {
 .asis-preguntar small { margin-left: 6px; font-size: .75rem; padding: 2px 8px; border-radius: 999px; background: var(--fondo); }
 
 .pie .version { font-size: .72rem; opacity: .6; margin-top: 4px; }
+
+/* ---- Contactos ---- */
+.marca-app { flex-wrap: wrap; row-gap: 8px; }
+.marca-app .nombre-app { min-width: 0; }
+.atajos-app { margin-left: auto; display: flex; gap: 6px; }
+.atajos-app .ir-stats { margin-left: 0 !important; padding: 7px 8px; }
+#vista-contactos .encabezado { display: flex; align-items: center; gap: 10px; }
+#vista-contactos .encabezado h1 { margin: 2px 0 14px; }
+.contactos-botones { display: flex; gap: 8px; margin: 12px 0 4px; flex-wrap: wrap; }
+.contactos-botones .primario, .contactos-botones .secundario { min-height: 44px; flex: 1; }
+.lista-contactos { display: grid; gap: 8px; }
+.contacto {
+  display: flex; align-items: center; gap: 6px; background: var(--papel); border: 1px solid color-mix(in srgb, var(--linea) 70%, transparent);
+  border-radius: var(--radio); padding: 6px 6px 6px 10px; box-shadow: var(--sombra);
+}
+.contacto-abrir { flex: 1; min-width: 0; display: flex; align-items: center; gap: 12px; border: 0; background: none; color: inherit; text-align: left; padding: 6px 0; cursor: pointer; font: inherit; }
+.inicial {
+  flex: none; width: 42px; height: 42px; border-radius: 50%; display: grid; place-items: center;
+  background: var(--acento-suave); color: var(--acento); font-weight: 700; font-size: .95rem;
+}
+.contacto-txt { min-width: 0; display: grid; }
+.contacto-txt strong { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.contacto-txt small { color: var(--suave); font-size: .8rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.canales { display: flex; gap: 2px; flex: none; }
+.canal {
+  display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; text-decoration: none; font-size: 1.05rem;
+  background: transparent;
+}
+.canal:active { background: var(--acento-suave); }
+
+/* Persona dentro del pendiente */
+.chip-persona { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: .8rem; font-weight: 600; white-space: nowrap; background: var(--acento-suave); color: var(--acento); }
+.contacto-pend { display: flex; align-items: center; gap: 2px; flex-wrap: wrap; margin-top: 6px; }
+.contacto-pend .persona {
+  border: 1px solid var(--linea); background: transparent; color: var(--tinta); border-radius: 999px;
+  padding: 4px 10px; min-height: 32px; font: 500 .8rem Inter, sans-serif; cursor: pointer; margin-right: 2px;
+  max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.contacto-pend .canal { width: 34px; height: 34px; font-size: .95rem; }
+.persona-editor { display: grid; gap: 6px; }
+.persona-editor label { display: grid; gap: 4px; }
+.persona-editor label span { font-size: .78rem; letter-spacing: .06em; text-transform: uppercase; color: var(--suave); font-weight: 600; }
+.sugerencias-persona { display: flex; flex-wrap: wrap; gap: 6px; }
+.sugerencias-persona .sug {
+  border: 1px solid var(--linea); background: var(--fondo); color: var(--tinta); border-radius: 999px;
+  padding: 6px 12px; min-height: 36px; font: 500 .85rem Inter, sans-serif; cursor: pointer; text-align: left;
+}
+.sugerencias-persona .sug.crear { color: var(--acento); border-style: dashed; }
+
+/* Ficha */
+.ficha-cabeza { display: flex; align-items: center; gap: 12px; padding: 4px 0 12px; }
+.ficha-cabeza h2 { margin: 0; font: 600 1.25rem/1.15 Fraunces, Georgia, serif; color: var(--acento); flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.ficha-cabeza .inicial { width: 54px; height: 54px; font-size: 1.15rem; }
+.ficha-textos { flex: 1; min-width: 0; }
+.ficha-textos h2 { flex: none; }
+.ficha-textos p { margin: 2px 0 0; color: var(--suave); font-size: .9rem; }
+.estrella { flex: none; width: 42px; height: 42px; border-radius: 50%; border: 1px solid var(--linea); background: transparent; color: var(--suave); font-size: 1.3rem; cursor: pointer; }
+.estrella.activa { color: var(--oro); border-color: var(--oro); }
+.ficha-acciones { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+.ficha-datos { display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; margin: 6px 0 12px; font-size: .92rem; }
+.ficha-datos dt { color: var(--suave); }
+.ficha-datos dd { margin: 0; overflow-wrap: anywhere; white-space: pre-line; }
+.ficha-cumple { border-top: 1px solid var(--linea); padding-top: 4px; margin-bottom: 8px; }
+.ficha-cumple .segmentos { margin: 6px 0 4px; }
+.ficha-sub { margin: 14px 0 8px; font-size: .95rem; }
+.asis-fila.hecha { opacity: .6; }
+.ficha-pie { margin-top: 14px; justify-content: space-between !important; }
+.borrar-contacto { border: 0; background: transparent; color: var(--tarde); font: 600 .9rem Inter, sans-serif; padding: 10px 4px; cursor: pointer; }
+.peligro { background: var(--tarde) !important; color: #fff !important; }
+
+/* Editor de contacto */
+.campos-contacto { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.campos-contacto label { display: grid; gap: 4px; font-size: .8rem; font-weight: 600; color: var(--suave); min-width: 0; }
+.campos-contacto label small { font-weight: 400; }
+.campos-contacto .ancho { grid-column: 1 / -1; }
+.campos-contacto input, .campos-contacto textarea {
+  width: 100%; border: 1px solid var(--linea); border-radius: 10px; background: var(--fondo); color: var(--tinta);
+  font: 400 1rem Inter, sans-serif; padding: 10px; min-height: 44px; min-width: 0;
+}
+.campos-contacto .check-fav { grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; font-size: .95rem; color: var(--tinta); }
+.campos-contacto .check-fav input { width: 20px; min-height: 0; height: 20px; accent-color: var(--acento); }
+@media (max-width: 360px) { .campos-contacto { grid-template-columns: 1fr; } }
+.error-form { color: var(--tarde); font-size: .88rem; margin: 10px 0 0; }
+#formContacto .fila { margin-top: 14px; }
+
+/* Importar */
+.ancho-total { width: 100%; min-height: 48px; margin-bottom: 8px; }
+.importar-lista { display: grid; gap: 6px; max-height: 46dvh; overflow-y: auto; margin-bottom: 12px; }
+.imp-fila { border: 1px solid var(--linea); border-radius: 12px; padding: 8px 10px; display: grid; gap: 6px; }
+.imp-fila.dup { border-color: color-mix(in srgb, var(--oro) 60%, var(--linea)); }
+.imp-fila label { display: flex; align-items: center; gap: 10px; cursor: pointer; }
+.imp-fila input { width: 20px; height: 20px; accent-color: var(--acento); flex: none; }
+.imp-fila label span { display: grid; min-width: 0; }
+.imp-fila small { color: var(--suave); }
+.imp-dup { color: var(--tinta) !important; font-size: .8rem; }
+.imp-fila select { border: 1px solid var(--linea); border-radius: 10px; background: var(--fondo); color: var(--tinta); font: inherit; padding: 8px; min-height: 40px; }
+
+/* ¿Cuál persona? */
+.elegir-lista { display: grid; gap: 8px; margin-bottom: 12px; }
+.elegir-opcion { display: grid; text-align: left; gap: 2px; border: 1px solid var(--linea); border-radius: 12px; background: var(--fondo); color: var(--tinta); padding: 10px 12px; font: inherit; cursor: pointer; min-height: 48px; }
+.elegir-opcion small { color: var(--suave); }
