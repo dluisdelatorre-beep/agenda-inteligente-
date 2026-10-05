@@ -17,17 +17,12 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <style>
-    .splash{position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;
-      background:#f6f3ec;color:#0f3d3e;text-align:center;padding:24px;cursor:pointer;
-      animation:splash-respaldo 0s 3s forwards}
+    .splash{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;
+      background:radial-gradient(120% 80% at 50% 35%,#16514f 0%,#0f3d3e 45%,#0a2b2b 100%)}
+    .splash-firma{width:150px;height:auto}
     .splash[hidden]{display:none}
-    .splash-logo{width:128px;height:128px;border-radius:28px;box-shadow:0 14px 40px rgba(15,61,62,.22)}
-    .splash-nombre{margin:14px 0 0;font:600 1.6rem Fraunces,Georgia,serif}
-    .splash-saltar{position:absolute;bottom:calc(28px + env(safe-area-inset-bottom));margin:0;font:500 .85rem Inter,system-ui,sans-serif;color:#5f6b6b}
-    @keyframes splash-respaldo{to{opacity:0;visibility:hidden;pointer-events:none}}
-    .sin-js{margin:40px 20px;font:1rem/1.5 system-ui,sans-serif;color:#1d2626}
   </style>
-  <link rel="stylesheet" href="styles.css?v=19">
+  <link rel="stylesheet" href="styles.css?v=20">
   <script>
     // Aplica tema, acento, densidad y texto antes de pintar, para que no parpadee.
     try {
@@ -41,18 +36,14 @@
   </script>
 </head>
 <body>
-  <!-- Splash de apertura con la marca del producto (ícono de la asistente + nombre).
-       Fondo = background_color del manifest (#f6f3ec) para que no haya destello al abrir instalada.
-       Se retira con JS en cuanto Hoy está listo; si el JS falla, el CSS lo retira solo a los 3 s. Tocar lo salta. -->
+  <!-- Splash de apertura: firma JS (solo al abrir) -->
   <div class="splash" id="splash" aria-hidden="true">
-    <img class="splash-logo" src="icons/icon-512.png" alt="" width="128" height="128" decoding="sync" fetchpriority="high">
-    <p class="splash-nombre">Agenda Inteligente</p>
-    <p class="splash-saltar">Toca para saltar</p>
+    <svg class="splash-firma" viewBox="0 0 160 110" role="img" aria-label="JS">
+      <defs><linearGradient id="oroFirma" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f3d58a"/><stop offset=".55" stop-color="#d4a84a"/><stop offset="1" stop-color="#a87b26"/></linearGradient></defs>
+      <text x="80" y="80" text-anchor="middle" class="firma-texto">JS</text>
+      <path class="firma-trazo" d="M22 92 C 60 100, 104 100, 140 88"/>
+    </svg>
   </div>
-  <noscript>
-    <style>.splash{display:none!important}</style>
-    <p class="sin-js">La Agenda Inteligente necesita JavaScript activado para funcionar. Actívalo en tu navegador y vuelve a abrirla.</p>
-  </noscript>
   <main class="app">
     <!-- ================= HOY ================= -->
     <section class="vista" id="vista-hoy" data-vista="hoy">
@@ -108,7 +99,7 @@
         <button id="permiso" class="permiso" hidden>Activar avisos</button>
         <p id="estadoAvisos" class="estado-avisos"></p>
         <p>Toca un pendiente para editarlo. Se guardan en este dispositivo.</p>
-        <p class="version" id="version">Versión 19</p>
+        <p class="version" id="version">Versión 20</p>
       </footer>
       </div>
     </section>
@@ -477,14 +468,14 @@
     </form>
   </dialog>
 
-  <script src="parser.js?v=19"></script>
-  <script src="almacen.js?v=19"></script>
-  <script src="ajustes.js?v=19"></script>
-  <script src="acciones.js?v=19"></script>
-  <script src="categorias.js?v=19"></script>
-  <script src="asistente.js?v=19"></script>
-  <script src="avatar.js?v=19"></script>
-  <script src="contactos.js?v=19"></script>
-  <script src="app.js?v=19"></script>
+  <script src="parser.js?v=20"></script>
+  <script src="almacen.js?v=20"></script>
+  <script src="ajustes.js?v=20"></script>
+  <script src="acciones.js?v=20"></script>
+  <script src="categorias.js?v=20"></script>
+  <script src="asistente.js?v=20"></script>
+  <script src="avatar.js?v=20"></script>
+  <script src="contactos.js?v=20"></script>
+  <script src="app.js?v=20"></script>
 </body>
 </html>
