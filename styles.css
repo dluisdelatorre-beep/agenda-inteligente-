@@ -933,7 +933,7 @@ button:focus-visible, a:focus-visible, [tabindex]:focus-visible { /* los campos 
 button:disabled, button[aria-disabled="true"] { opacity: .5; cursor: not-allowed; }
 @media (hover: hover) and (pointer: fine) {
   .primario:not(:disabled):hover, #guardar:not(:disabled):hover, .accion-item:hover { filter: brightness(1.08); }
-  .secundario:not(:disabled):hover, .chip:hover, .filtro:hover, .redondo:hover, .ir-stats:hover { background-color: var(--acento-suave); }
+  .secundario:not(:disabled):hover, .chip:not(.activo):hover, .filtro:not(.activo):hover, .redondo:hover, .ir-stats:hover { background-color: var(--acento-suave); }
 }
 button.cargando { position: relative; color: transparent !important; pointer-events: none; }
 button.cargando::after {

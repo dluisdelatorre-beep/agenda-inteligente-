@@ -109,12 +109,19 @@ with sync_playwright() as p:
     assert not r["hecho"] and not r["avisado"] and "avisadoEn" not in r
     pg.click(".filtro[data-filtro=pendientes]")
     paso("desmarcar lo regresa a pendiente con su aviso listo otra vez")
+    # Filtro activo con el mouse encima: conserva su fondo de acento (antes el hover lo dejaba claro con letra blanca)
+    pg.hover(".filtro[data-filtro=pendientes]"); pg.wait_for_timeout(300)
+    _ac = pg.evaluate("getComputedStyle(document.querySelector('.filtro.activo')).backgroundColor")
+    _tx = pg.evaluate("getComputedStyle(document.querySelector('.filtro.activo')).color")
+    assert _ac != _tx, (_ac, _tx)
+    assert pg.evaluate("(() => { const e = document.createElement('i'); e.style.color = 'var(--acento-suave)'; document.body.append(e); const c = getComputedStyle(e).color; e.remove(); return c; })()") != _ac
+    paso("filtro activo con el mouse encima sigue legible (fondo de acento, no el tono suave del hover)")
 
     # Service worker / PWA
     sw = pg.evaluate("navigator.serviceWorker.ready.then(r => r.active && r.active.scriptURL)")
     assert sw.endswith("/sw.js")
-    assert pg.evaluate("caches.keys()") and "agenda-v20" in pg.evaluate("caches.keys()")
-    paso("service worker activo con caché agenda-v20 (PWA/offline sin regresión)")
+    assert pg.evaluate("caches.keys()") and "agenda-v21" in pg.evaluate("caches.keys()")
+    paso("service worker activo con caché agenda-v21 (PWA/offline sin regresión)")
     assert pg.evaluate("document.documentElement.scrollWidth <= innerWidth")
     pg.click(".tab[data-ir=calendario]"); pg.wait_for_timeout(300); pg.screenshot(path=os.path.join(SALIDA, "ux-telefono-calendario.png"))
     pg.click(".tab[data-ir=hoy]"); pg.click("#verContactos"); pg.wait_for_timeout(300); pg.screenshot(path=os.path.join(SALIDA, "ux-telefono-contactos.png"))

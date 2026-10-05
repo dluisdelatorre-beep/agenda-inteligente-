@@ -96,4 +96,12 @@ caso('dirección dicha en la frase → "Cómo llegar" listo sin capturarla otra 
   assert.strictEqual(s('Pagar luz en Oxxo').actionType, 'pago', 'un pago sigue siendo pago');
 });
 
+caso('al quitar el teléfono no queda colgado el conector ("Llamar a Germán al")', () => {
+  assert.strictEqual(A.extraer('llamar a Germán al 9981234567 hoy a las 5 pm').resto, 'llamar a Germán hoy a las 5 pm');
+  assert.strictEqual(A.extraer('llamar a mamá al cel 9981234567 mañana').resto, 'llamar a mamá mañana');
+  assert.strictEqual(A.extraer('manda whatsapp a Ana en el 9981234567').resto, 'manda whatsapp a Ana');
+  const r = capturar('llamar a Germán al 9981234567 hoy a las 5 pm');
+  assert.strictEqual(r.texto, 'Llamar a Germán'); assert.strictEqual(r.contactPhone, '9981234567');
+});
+
 console.log(`${ok}/${ok} pruebas de acciones pasaron`);

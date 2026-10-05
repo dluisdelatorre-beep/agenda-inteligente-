@@ -56,7 +56,12 @@
     const mt = resto.match(RE_TEL);
     if (mt && mt[0].replace(/\D/g, '').length >= 8) {
       telefono = limpiarTelefono(mt[0]);
-      if (telefono) resto = resto.replace(mt[0], ' ');
+      if (telefono) {
+        // Se quita también el conector que lo presentaba ("al", "al número", "al cel") para no dejar "Llamar a Germán al"
+        const esc = mt[0].replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const conConector = new RegExp('(?:\\b(?:al|a|en(?:\\s+el)?)\\s+)?(?:(?:n[uú]mero|tel[eé]fono|tel\\.?|cel(?:ular)?)\\s*:?\\s*)?' + esc, 'i');
+        resto = resto.replace(conConector, ' ');
+      }
     }
     return { resto: resto.replace(/\s+/g, ' ').trim(), url, telefono };
   }

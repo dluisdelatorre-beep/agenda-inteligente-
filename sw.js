@@ -4,7 +4,7 @@
 // 3) Atiende los botones del aviso: "Posponer 10 min" y "Hecho".
 importScripts('almacen.js', 'acciones.js');
 
-const CACHE = 'agenda-v20';
+const CACHE = 'agenda-v21';
 const POSPONER_MIN = 10;
 const ARCHIVOS = [
   '/', '/index.html', '/styles.css', '/app.js', '/parser.js', '/almacen.js', '/ajustes.js', '/acciones.js', '/categorias.js', '/asistente.js', '/avatar.js', '/contactos.js',
