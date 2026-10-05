@@ -962,3 +962,85 @@ button.cargando::after {
 /* Foco del campo de captura: se ilumina la caja completa (el campo no lleva contorno propio) */
 .captura { transition: border-color var(--dur-estado) var(--curva), box-shadow var(--dur-estado) var(--curva); }
 .captura:focus-within { border-color: var(--acento); box-shadow: var(--sombra), var(--anillo); }
+
+/* =========================================================
+   Sistema visual Agenda UX 1.0 (Soft Tech Utility)
+   Un solo juego de radios y una jerarquía clara de botones para toda la app:
+   · primaria sólida (Guardar, confirmar) · secundaria suave (contorno fino)
+   · contextual compacta (acciones de la tarjeta) · destructiva subordinada (quitar)
+   Menos píldoras: los controles usan radio moderado; solo el avatar y el + son redondos.
+   ========================================================= */
+:root { --r-control: 10px; --r-tag: 6px; --r-segmento: 12px; }
+
+/* Primaria sólida */
+.captura button, .primario, .banda button:not(.cerrar), .aviso .accion, .aviso a.accion {
+  border-radius: var(--r-control); font-weight: 600;
+}
+.captura button { min-height: 44px; padding: 10px 24px; }
+/* Guardar sin texto: sigue viéndose como el botón principal, en tono suave (no gris lavado) */
+.captura button:disabled { opacity: 1; background: var(--acento-suave); color: color-mix(in srgb, var(--acento) 70%, transparent); }
+
+/* Secundarias suaves */
+.secundario, .quitar, .permiso, .volver, .ir-hoy, .item .posponer, .chip, .sug, .sugerencias-persona .sug {
+  border-radius: var(--r-control);
+}
+.item .posponer { min-height: 36px; padding: 6px 12px; }
+
+/* Atajos del encabezado: secundarios con ícono de línea (mismo estilo que la barra) */
+.marca-app .ir-stats {
+  flex-direction: row; gap: 6px; min-height: 40px; padding: 8px 12px;
+  border: 1px solid var(--linea); border-radius: var(--r-control); background: var(--papel);
+  color: var(--tinta); font: 600 .82rem Inter, sans-serif; line-height: 1;
+}
+.marca-app .ir-stats span { font-size: .82rem; }
+.marca-app .ir-stats svg {
+  width: 18px; height: 18px; flex: none; fill: none; stroke: var(--acento);
+  stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round;
+}
+.atajos-app { margin-left: auto; display: flex; gap: 6px; }
+.atajos-app .ir-stats { margin-left: 0; }
+
+/* Pendientes / Hechos: control segmentado, no dos píldoras */
+.filtros {
+  display: inline-flex; flex-wrap: nowrap; gap: 2px; padding: 3px;
+  background: color-mix(in srgb, var(--tinta) 6%, transparent); border-radius: var(--r-segmento);
+}
+.filtros .filtro {
+  border: 0; border-radius: calc(var(--r-segmento) - 3px); min-height: 38px; padding: 7px 18px;
+  background: transparent; color: var(--suave); font-weight: 500;
+}
+.filtros .filtro.activo {
+  background: var(--acento); color: var(--sobre-acento); font-weight: 600;
+  box-shadow: 0 1px 2px rgba(16, 32, 32, .10);
+}
+
+/* Acciones contextuales de la tarjeta: compactas, mismo radio */
+.accion-item { border-radius: var(--r-control); min-height: 38px; padding: 7px 12px; }
+.accion-item.incompleta {
+  border: 1px solid var(--linea); background: transparent; color: var(--acento); font-weight: 600;
+}
+
+/* Etiquetas: rectángulos chicos, no píldoras */
+.chip-cat, .chip-prio, .chip-accion, .chip-persona { border-radius: var(--r-tag); }
+
+/* Destructiva subordinada: la X pesa menos que todo lo demás, pero con área de toque completa */
+.item .borrar {
+  display: grid; place-items: center; width: 40px; height: 40px; padding: 0; border-radius: var(--r-control);
+  font-size: 1.15rem; color: color-mix(in srgb, var(--suave) 70%, transparent);
+}
+@media (hover: hover) and (pointer: fine) {
+  .item .borrar:hover { color: var(--tarde); background: color-mix(in srgb, var(--tarde) 8%, transparent); }
+  .marca-app .ir-stats:hover { background: var(--acento-suave); }
+}
+
+/* Foco de la caja de captura: anillo fino, no un marco grueso */
+.captura:focus-within { border-color: var(--acento); box-shadow: var(--sombra), 0 0 0 3px color-mix(in srgb, var(--acento) 14%, transparent); }
+/* Encabezado en una sola línea: en celular y en la columna angosta de computadora los atajos quedan
+   como botones de ícono (44 px de toque, nombre accesible en aria-label y title) */
+.marca-app { flex-wrap: nowrap; }
+.nombre-app { flex: 0 1 auto; min-width: 0; }
+@media (max-width: 599px), (min-width: 1100px) {
+  .marca-app .ir-stats { width: 44px; height: 44px; min-height: 44px; padding: 0; justify-content: center; }
+  .marca-app .ir-stats span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .marca-app .ir-stats svg { width: 20px; height: 20px; }
+}

@@ -69,7 +69,11 @@ with sync_playwright() as p:
     paso("panel del asistente abre y cierra (Esc / atrás)")
 
     # Botones: disabled, focus-visible, pressed
-    assert pg.is_disabled("#guardar") and pg.evaluate("getComputedStyle(document.getElementById('guardar')).opacity") == "0.5"
+    # Guardar vacío: deshabilitado y en tono suave (sistema visual: la primaria no se ve gris lavada)
+    _bg_off = pg.evaluate("getComputedStyle(document.getElementById('guardar')).backgroundColor")
+    assert pg.is_disabled("#guardar") and pg.evaluate("getComputedStyle(document.getElementById('guardar')).cursor") == "not-allowed"
+    pg.fill("#entrada", "x"); _bg_on = pg.evaluate("getComputedStyle(document.getElementById('guardar')).backgroundColor"); pg.fill("#entrada", "")
+    assert _bg_off != _bg_on, (_bg_off, _bg_on)
     pg.focus("#entrada"); pg.keyboard.press("Shift+Tab")
     foco = pg.evaluate("(() => { const e = document.activeElement; const s = getComputedStyle(e); return [e.tagName, s.outlineStyle]; })()")
     assert foco[1] == "solid", foco
