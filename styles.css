@@ -41,6 +41,18 @@
     --atrasado-resumen: #7a2d16; color-scheme: dark;
   }
 }
+/* ---- Sistema de movimiento (un solo juego de tiempos y curvas para toda la app) ----
+   toque: respuesta al presionar · estado: cambios de estado/vista · panel: hojas y paneles */
+:root {
+  --dur-toque: 150ms; --dur-estado: 210ms; --dur-panel: 300ms; --dur-panel-sale: 220ms;
+  --curva: cubic-bezier(.2, .8, .2, 1);        /* entrada natural, sin rebote */
+  --curva-salida: cubic-bezier(.4, 0, 1, 1);   /* salida rápida */
+  --curva-suave: cubic-bezier(.35, .1, .3, 1); /* gestos del avatar */
+  --anillo: 0 0 0 3px color-mix(in srgb, var(--acento) 45%, transparent);
+}
+@media (prefers-reduced-motion: reduce) {
+  :root { --dur-toque: 1ms; --dur-estado: 1ms; --dur-panel: 1ms; --dur-panel-sale: 1ms; }
+}
 /* El tono suave del acento sirve para selecciones (días, segmentos) */
 :root { --acento-suave: color-mix(in srgb, var(--acento) 14%, transparent); }
 
@@ -128,7 +140,7 @@ body {
   font: 600 .95rem Inter, sans-serif;
   cursor: pointer;
 }
-.captura button:disabled { opacity: .4; cursor: default; }
+.captura button:disabled { cursor: not-allowed; }
 
 .filtros, .chips { display: flex; gap: 6px; margin: var(--sep) 0 10px; flex-wrap: wrap; }
 .filtro, .chip {
@@ -386,11 +398,11 @@ body {
 .interruptor {
   appearance: none; -webkit-appearance: none; flex: none;
   width: 50px; height: 30px; border-radius: 999px; margin: 0;
-  background: var(--linea); position: relative; cursor: pointer; transition: background .15s;
+  background: var(--linea); position: relative; cursor: pointer; transition: background var(--dur-toque) var(--curva);
 }
 .interruptor::after {
   content: ''; position: absolute; top: 3px; left: 3px; width: 24px; height: 24px; border-radius: 50%;
-  background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.25); transition: transform .15s;
+  background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.25); transition: transform var(--dur-toque) var(--curva);
 }
 .interruptor:checked { background: var(--acento); }
 .interruptor:checked::after { transform: translateX(20px); }
@@ -661,16 +673,16 @@ body {
   border: 0; padding: 0; margin: auto auto 0; width: 100%; max-width: 560px; max-height: 88dvh;
   background: transparent; color: var(--tinta); overflow: visible;
 }
-.hoja-abajo::backdrop { background: rgba(0, 0, 0, .4); animation: velo .25s ease; }
+.hoja-abajo::backdrop { background: rgba(0, 0, 0, .4); animation: velo var(--dur-panel) var(--curva); }
 .hoja-cuerpo {
   background: var(--papel); border-radius: 24px 24px 0 0; box-shadow: 0 -10px 40px rgba(0, 0, 0, .22);
   max-height: 88dvh; overflow-y: auto; overscroll-behavior: contain;
   padding: 0 16px calc(16px + env(safe-area-inset-bottom));
-  transition: transform .2s ease;
+  transition: transform var(--dur-estado) var(--curva);
 }
-.hoja-abajo[open] .hoja-cuerpo { animation: subir .3s cubic-bezier(.2, .8, .2, 1); }
-.hoja-abajo.cerrando .hoja-cuerpo { animation: bajar .2s ease-in forwards; }
-.hoja-abajo.cerrando::backdrop { opacity: 0; transition: opacity .2s; }
+.hoja-abajo[open] .hoja-cuerpo { animation: subir var(--dur-panel) var(--curva); }
+.hoja-abajo.cerrando .hoja-cuerpo { animation: bajar var(--dur-panel-sale) var(--curva-salida) forwards; }
+.hoja-abajo.cerrando::backdrop { opacity: 0; transition: opacity var(--dur-panel-sale); }
 @keyframes subir { from { transform: translateY(100%); } to { transform: translateY(0); } }
 @keyframes bajar { to { transform: translateY(100%); } }
 @keyframes velo { from { opacity: 0; } }
@@ -827,3 +839,126 @@ body {
 .elegir-lista { display: grid; gap: 8px; margin-bottom: 12px; }
 .elegir-opcion { display: grid; text-align: left; gap: 2px; border: 1px solid var(--linea); border-radius: 12px; background: var(--fondo); color: var(--tinta); padding: 10px 12px; font: inherit; cursor: pointer; min-height: 48px; }
 .elegir-opcion small { color: var(--suave); }
+
+/* =========================================================
+   Splash de apertura: firma JS (solo al abrir)
+   Microanimación breve: aparece la firma y se traza la línea; luego se desvanece hacia Hoy.
+   ========================================================= */
+.firma-texto { font: 600 78px Fraunces, Georgia, serif; fill: url(#oroFirma); letter-spacing: 2px; }
+.firma-trazo { fill: none; stroke: url(#oroFirma); stroke-width: 3; stroke-linecap: round; stroke-dasharray: 130; stroke-dashoffset: 130; }
+.splash .firma-texto { animation: firma-entra var(--dur-panel) var(--curva) both; }
+.splash .firma-trazo { animation: firma-traza .42s .14s var(--curva) forwards; }
+.splash { transition: opacity var(--dur-panel) var(--curva-salida); }
+.splash.saliendo { opacity: 0; pointer-events: none; }
+@keyframes firma-entra { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@keyframes firma-traza { to { stroke-dashoffset: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .splash, .splash * { animation: none !important; transition: none !important; }
+  .firma-trazo { stroke-dashoffset: 0; }
+}
+
+/* =========================================================
+   Tablet y computadora
+   Teléfono: una columna y barra de pestañas abajo (como siempre).
+   Tablet (≥ 768 px): más ancho, barra flotante centrada, contactos y estadísticas en dos columnas,
+     paneles centrados.
+   Computadora (≥ 1100 px): menú lateral fijo a la izquierda y Hoy en dos columnas
+     (captura y resumen a la izquierda, lista a la derecha).
+   ========================================================= */
+@media (min-width: 768px) {
+  .app { max-width: 760px; padding-left: 28px; padding-right: 28px; padding-top: calc(36px + env(safe-area-inset-top)); }
+  .tabbar {
+    left: 50%; right: auto; bottom: 16px; transform: translateX(-50%);
+    width: min(560px, calc(100vw - 48px)); height: var(--barra); padding-bottom: 0;
+    border: 1px solid var(--linea); border-radius: 22px; box-shadow: 0 10px 30px rgba(0,0,0,.12);
+  }
+  .tab { font-size: .78rem; }
+  .lista-contactos, #listaContactos { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .hoja-abajo { margin: auto; }
+  .hoja-cuerpo { border-radius: 24px; box-shadow: 0 20px 60px rgba(0,0,0,.28); padding-bottom: 20px; }
+  @keyframes subir { from { transform: translateY(24px); opacity: 0; } to { transform: none; opacity: 1; } }
+  @keyframes bajar { to { transform: translateY(24px); opacity: 0; } }
+  .dia { max-height: 64px; }
+  .aviso { left: 50%; right: auto; transform: translateX(-50%); width: min(560px, calc(100vw - 48px)); bottom: calc(var(--barra) + 28px); }
+}
+
+@media (min-width: 1100px) {
+  :root { --lateral: 232px; }
+  .app { max-width: none; margin: 0 0 0 var(--lateral); padding: 40px 48px 48px; }
+  .app > .vista { max-width: 1080px; margin: 0 auto; }
+  .tabbar {
+    top: 0; bottom: 0; left: 0; transform: none; width: var(--lateral); height: auto;
+    display: flex; flex-direction: column; align-items: stretch; gap: 4px;
+    padding: 28px 14px; border: 0; border-right: 1px solid var(--linea); border-radius: 0; box-shadow: none;
+    background: var(--papel);
+  }
+  .tab {
+    flex-direction: row; justify-content: flex-start; gap: 12px; height: 46px; padding: 0 12px;
+    border-radius: 12px; font-size: .95rem; order: 2;
+  }
+  .tab:hover { background: var(--acento-suave); color: var(--tinta); }
+  .tab.activo { background: var(--acento-suave); }
+  .tab-nuevo { order: 1; position: static; transform: none; width: 100%; height: 46px; margin: 0 0 14px; border-radius: 12px; }
+  .tab-nuevo > span { width: 100%; height: 100%; border-radius: 12px; box-shadow: none; margin: 0; display: flex; flex-direction: row; align-items: center; justify-content: center; }
+  .tab-nuevo svg { width: 20px; height: 20px; }
+  .tab-nuevo > span::after { content: 'Nuevo pendiente'; font: 600 .95rem Inter, sans-serif; margin-left: 8px; color: var(--sobre-acento); }
+  .tabbar { padding-top: 24px; }
+  .aviso { left: calc(var(--lateral) + (100vw - var(--lateral)) / 2); bottom: 24px; }
+
+  /* Hoy en dos columnas */
+  #vista-hoy:not([hidden]) { display: grid; grid-template-columns: minmax(340px, 400px) minmax(0, 1fr); gap: 0 40px; align-items: start; }
+  #vista-hoy > .banda { grid-column: 1 / -1; }
+  .hoy-panel { position: sticky; top: 32px; }
+  .hoy-lista { padding-top: 8px; }
+  .hoy-lista .pie { text-align: left; }
+
+  /* Calendario: mes a la izquierda, pendientes del día a la derecha */
+  #vista-calendario:not([hidden]) { display: grid; grid-template-columns: minmax(360px, 460px) minmax(0, 1fr); grid-template-rows: auto auto 1fr; gap: 0 40px; align-items: start; }
+  #vista-calendario > .encabezado { grid-column: 1 / -1; }
+  #vista-calendario > .mes { grid-row: 2 / span 2; position: sticky; top: 32px; }
+  #vista-calendario > #diaTitulo { margin-top: 0; }
+  .lista-contactos, #listaContactos { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  #vista-ajustes, #vista-buscar { max-width: 760px !important; }
+}
+
+/* =========================================================
+   Estados de botones (uno solo para toda la app)
+   default · hover (con mouse) · pressed · focus-visible · disabled · loading
+   ========================================================= */
+button, .accion-item, .canal, a.accion { transition: transform var(--dur-toque) var(--curva), background-color var(--dur-estado) var(--curva), opacity var(--dur-estado) var(--curva); }
+button:not(:disabled):active, .accion-item:active, .canal:active { transform: scale(.97); }
+button:focus-visible, a:focus-visible, [tabindex]:focus-visible { /* los campos de texto conservan su propio estilo de foco */
+  outline: 2px solid var(--acento); outline-offset: 2px; box-shadow: var(--anillo);
+}
+button:disabled, button[aria-disabled="true"] { opacity: .5; cursor: not-allowed; }
+@media (hover: hover) and (pointer: fine) {
+  .primario:not(:disabled):hover, #guardar:not(:disabled):hover, .accion-item:hover { filter: brightness(1.08); }
+  .secundario:not(:disabled):hover, .chip:hover, .filtro:hover, .redondo:hover, .ir-stats:hover { background-color: var(--acento-suave); }
+}
+button.cargando { position: relative; color: transparent !important; pointer-events: none; }
+button.cargando::after {
+  content: ''; position: absolute; inset: 0; margin: auto; width: 18px; height: 18px; border-radius: 50%;
+  border: 2px solid currentColor; border-color: var(--sobre-acento) transparent var(--sobre-acento) transparent;
+  animation: girar .7s linear infinite;
+}
+@keyframes girar { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { button.cargando::after { animation-duration: 2s; } }
+
+/* =========================================================
+   Transición entre vistas: entra con un leve desplazamiento en la dirección de la navegación.
+   La vista anterior se oculta al instante (nunca quedan dos vistas encimadas).
+   ========================================================= */
+.vista.entra-adelante { animation: vista-adelante var(--dur-estado) var(--curva); }
+.vista.entra-atras { animation: vista-atras var(--dur-estado) var(--curva); }
+@keyframes vista-adelante { from { opacity: 0; transform: translateX(14px); } to { opacity: 1; transform: none; } }
+@keyframes vista-atras { from { opacity: 0; transform: translateX(-14px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .vista.entra-adelante, .vista.entra-atras { animation: none; } }
+
+/* Tarjetas: aparecen al crearse y se despiden al completarse, sin saltos */
+.item.recien { animation: tarjeta-entra var(--dur-panel) var(--curva); }
+.item.saliendo { opacity: 0; transform: translateX(10px); transition: opacity var(--dur-estado) var(--curva-salida), transform var(--dur-estado) var(--curva-salida); }
+@keyframes tarjeta-entra { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .item.recien { animation: none; } .item.saliendo { transform: none; } }
+/* Foco del campo de captura: se ilumina la caja completa (el campo no lleva contorno propio) */
+.captura { transition: border-color var(--dur-estado) var(--curva), box-shadow var(--dur-estado) var(--curva); }
+.captura:focus-within { border-color: var(--acento); box-shadow: var(--sombra), var(--anillo); }

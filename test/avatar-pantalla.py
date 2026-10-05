@@ -99,11 +99,9 @@ with sync_playwright() as p:
     assert "asiente" in pg.evaluate("__gestos")
     paso("al marcar una tarea como hecha asiente con la cabeza")
     pg.wait_for_timeout(1600); pg.evaluate("__gestos = []")
-    pg.click(".filtro[data-filtro=pendientes]"); pg.wait_for_timeout(200)
-    g = pg.evaluate("__gestos"); assert "parpadea" in g and "inclina" in g, g
-    pg.evaluate("__gestos = []"); pg.click(".filtro[data-filtro=hechos]"); pg.wait_for_timeout(200)
-    assert pg.evaluate("__gestos") == [] or pg.evaluate("__gestos") == ["parpadea"]
-    paso("al tocar otros botones parpadea e inclina, sin repetirse a lo loco (máximo una vez cada 1.5 s)")
+    pg.click(".filtro[data-filtro=pendientes]"); pg.click(".filtro[data-filtro=hechos]"); pg.click(".filtro[data-filtro=pendientes]"); pg.wait_for_timeout(200)
+    g = pg.evaluate("__gestos"); assert "inclina" not in g and "asiente" not in g, g
+    paso("botones sin significado (filtros) ya no mueven la cabeza: reacciona solo a lo que importa (Agenda UX 1.0)")
     ctx.close()
 
     # Caso del teléfono: capturar con el teclado abierto (avatar fuera de pantalla) → el pulso espera a que se vea

@@ -86,4 +86,14 @@ caso('botones del aviso: acción principal + posponer (Android muestra 2); sin a
   assert.strictEqual(A.cuerpoNotificacion(llamar), 'Es hora de llamar a Luis.');
 });
 
+caso('dirección dicha en la frase → "Cómo llegar" listo sin capturarla otra vez', () => {
+  const s = (t) => { const x = A.extraer(t); return A.normalizar(A.sugerir(x.resto, x)); };
+  assert.strictEqual(s('Cita con el dentista en Av Tulum 230').actionValue, 'https://www.google.com/maps/search/?api=1&query=Av%20Tulum%20230');
+  assert.strictEqual(s('Recoger paquete en Calle 10 #45').location, 'Calle 10 #45');
+  assert.strictEqual(s('Cita con el doctor en el Hospital Galenia').location, 'Hospital Galenia');
+  assert.strictEqual(s('Comer con Ana en Sanborns').actionType, null, 'sin pista de dirección no adivina');
+  assert.strictEqual(s('Revisar pendientes en casa').actionType, null);
+  assert.strictEqual(s('Pagar luz en Oxxo').actionType, 'pago', 'un pago sigue siendo pago');
+});
+
 console.log(`${ok}/${ok} pruebas de acciones pasaron`);

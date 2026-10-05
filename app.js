@@ -162,6 +162,14 @@
   }
 
   // El editor se abre solo en la pantalla que está a la vista (no en las ocultas).
+  // La tarjeta se desliza y se desvanece antes de reacomodar la lista (sin saltos bruscos)
+  let recienCreado = null;
+  function despedirTarjeta(el) {
+    if (!el || !el.isConnected || matchMedia('(prefers-reduced-motion: reduce)').matches) return Promise.resolve();
+    el.classList.add('saliendo');
+    return new Promise((ok) => setTimeout(ok, 200));
+  }
+
   function item(p, ahora, vista) {
     return p.id === editando && vista === vistaActual ? editor(p) : tarjeta(p, ahora);
   }
@@ -169,15 +177,20 @@
   function tarjeta(p, ahora) {
     const div = document.createElement('div');
     const vencido = !p.hecho && p.cuando && new Date(p.cuando) < ahora;
-    div.className = 'item' + (p.hecho ? ' hecho' : '') + (vencido ? ' vencido' : '') + (p.priority === 'alta' ? ' prio-alta' : '');
+    div.className = 'item' + (p.hecho ? ' hecho' : '') + (vencido ? ' vencido' : '') + (p.priority === 'alta' ? ' prio-alta' : '') + (p.id === recienCreado ? ' recien' : '');
+    if (p.id === recienCreado) div.addEventListener('animationend', () => { div.classList.remove('recien'); recienCreado = null; }, { once: true });
 
     const check = boton('check', '', p.hecho ? 'Marcar como pendiente' : 'Marcar como hecho', async () => {
+      if (check.disabled) return;
+      check.disabled = true; // evita doble toque mientras se reacomoda
       p.hecho = !p.hecho;
       p.hechoEn = p.hecho ? new Date().toISOString() : null;
       if (!p.hecho) { p.avisado = false; delete p.avisadoEn; delete p.avisadoPara; }
       if (p.hecho) { ajustes.tocar('hecho'); avatarAsistente.reaccionar('success'); }
-      await guardar(); pintar();
+      await guardar(); // primero se guarda: la animación nunca retrasa ni arriesga el dato
       almacen.sincronizar(p);
+      await despedirTarjeta(div);
+      pintar();
     });
 
     const cuerpo = document.createElement('button');
@@ -509,6 +522,7 @@
     aplicarContacto(nuevo);
     const persona = borrador.persona || { nombre: '', candidatos: [] };
     pendientes.push(nuevo);
+    recienCreado = nuevo.id;
     await guardar();
     entrada.value = '';
     entrada.dispatchEvent(new Event('input'));
@@ -767,8 +781,20 @@
   function mostrarVista(vista) {
     if (!VISTAS.includes(vista)) vista = 'hoy';
     if (vista !== vistaActual) editando = null;
+    // Continuidad espacial: hacia la derecha al avanzar en las pestañas, hacia la izquierda al regresar
+    const ORDEN = { hoy: 0, estadisticas: 0.5, contactos: 0.6, calendario: 1, buscar: 2, ajustes: 3 };
+    const direccion = vistaActual && vista !== vistaActual ? (ORDEN[vista] > ORDEN[vistaActual] ? 'entra-adelante' : 'entra-atras') : null;
     vistaActual = vista;
-    document.querySelectorAll('.vista').forEach((v) => { v.hidden = v.dataset.vista !== vista; });
+    document.querySelectorAll('.vista').forEach((v) => {
+      v.hidden = v.dataset.vista !== vista; // la anterior se oculta al instante: nunca hay dos encimadas
+      v.classList.remove('entra-adelante', 'entra-atras');
+    });
+    if (direccion) {
+      const nueva = document.querySelector(`.vista[data-vista="${vista}"]`);
+      void nueva.offsetWidth;
+      nueva.classList.add(direccion);
+      nueva.addEventListener('animationend', () => nueva.classList.remove('entra-adelante', 'entra-atras'), { once: true });
+    }
     document.querySelectorAll('.tab').forEach((t) => {
       const activo = t.dataset.ir === vista;
       t.classList.toggle('activo', activo);
@@ -1854,7 +1880,23 @@
   // Al abrir siempre empieza en Hoy (aunque la dirección traiga #calendario, etc.)
   if (location.hash) history.replaceState(null, '', location.pathname + location.search);
 
+  // ---- Splash de apertura (firma JS) ----
+  // Está en el HTML, así que se ve desde el primer instante; se retira en cuanto Hoy ya está pintado.
+  // Mínimo ~550 ms para que la firma se alcance a ver, sin retrasar la carga; nunca más de 2.5 s.
+  const splash = $('splash');
+  const inicioSplash = performance.now();
+  function quitarSplash() {
+    if (!splash || splash.hidden || splash.classList.contains('saliendo')) return;
+    const minimo = matchMedia('(prefers-reduced-motion: reduce)').matches ? 250 : 550;
+    setTimeout(() => {
+      splash.classList.add('saliendo'); // no bloquea: deja de recibir toques desde aquí
+      setTimeout(() => { splash.hidden = true; setTimeout(() => avatarAsistente.reaccionar('greeting'), 250); }, 320);
+    }, Math.max(0, minimo - (performance.now() - inicioSplash)));
+  }
+  setTimeout(quitarSplash, 2500);
+
   Promise.all([ajustes.cargar(), recargar()]).then(async () => {
+    quitarSplash();
     await asegurarCumples(); // si ya pasó un cumpleaños, prepara el del próximo año
     revisarRecordatorios();
     estadoAvisos();

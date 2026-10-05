@@ -71,6 +71,19 @@
     return null;
   }
 
+  // "… en Av. Tulum 230", "… en la Calle 10 #45", "… en Plaza Las Américas".
+  // Si ya sabemos que es una cita (dentista, banco…), cualquier lugar después de "en" sirve;
+  // si no, solo cuando parece dirección (avenida, calle, plaza, número…), para no adivinar de más.
+  const RE_DIRECCION = /\b(av|avenida|calle|c|blvd|bulevar|boulevard|plaza|col|colonia|fracc|fraccionamiento|carretera|km|sm|supermanzana|mz|manzana|lote|local|piso|edificio|torre|centro comercial|hospital|clinica|consultorio|notaria|oficina)\b|#\s*\d|\d{2,}/;
+  function extraerLugar(texto, esCita) {
+    const m = String(texto || '').match(/\s(?:en|al|a la)\s+(?:el\s+|la\s+|los\s+|las\s+)?(.{3,120})$/i);
+    if (!m) return null;
+    const lugar = m[1].replace(/[.,;]+$/, '').trim();
+    if (!lugar) return null;
+    if (esCita || RE_DIRECCION.test(sinAcentos(lugar))) return lugar;
+    return null;
+  }
+
   // Sugiere una acción según el texto. Siempre se puede cambiar; nunca impide guardar.
   function sugerir(texto, extra = {}) {
     const t = ' ' + sinAcentos(texto) + ' ';
@@ -93,6 +106,12 @@
       r.actionType = 'reunion';
     } else if (/\b(dentista|doctor|doctora|medico|hospital|clinica|consultorio|cita con|cita en|ir a|ir al|visitar|recoger en|oficina de|notaria|banco)\b/.test(t)) {
       r.actionType = 'ubicacion';
+    }
+
+    // Dirección dicha en la frase ("… en Av. Tulum 230"): se guarda para que "Cómo llegar" funcione de una vez
+    if (!r.actionType || r.actionType === 'ubicacion') {
+      const lugar = extraerLugar(texto, r.actionType === 'ubicacion');
+      if (lugar) { r.actionType = 'ubicacion'; if (!r.location) r.location = lugar; }
     }
 
     if (r.actionType === 'llamar') {
@@ -161,7 +180,7 @@
     return null;
   }
 
-  const api = { TIPOS, extraer, sugerir, destino, normalizar, limpiarUrl, limpiarTelefono, botonesNotificacion, cuerpoNotificacion };
+  const api = { extraerLugar, TIPOS, extraer, sugerir, destino, normalizar, limpiarUrl, limpiarTelefono, botonesNotificacion, cuerpoNotificacion };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else raiz.acciones = api;
 })(typeof self !== 'undefined' ? self : this);

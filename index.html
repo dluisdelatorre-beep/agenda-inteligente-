@@ -16,7 +16,13 @@
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=18">
+  <style>
+    .splash{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;
+      background:radial-gradient(120% 80% at 50% 35%,#16514f 0%,#0f3d3e 45%,#0a2b2b 100%)}
+    .splash-firma{width:150px;height:auto}
+    .splash[hidden]{display:none}
+  </style>
+  <link rel="stylesheet" href="styles.css?v=19">
   <script>
     // Aplica tema, acento, densidad y texto antes de pintar, para que no parpadee.
     try {
@@ -30,6 +36,14 @@
   </script>
 </head>
 <body>
+  <!-- Splash de apertura: firma JS (solo al abrir) -->
+  <div class="splash" id="splash" aria-hidden="true">
+    <svg class="splash-firma" viewBox="0 0 160 110" role="img" aria-label="JS">
+      <defs><linearGradient id="oroFirma" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f3d58a"/><stop offset=".55" stop-color="#d4a84a"/><stop offset="1" stop-color="#a87b26"/></linearGradient></defs>
+      <text x="80" y="80" text-anchor="middle" class="firma-texto">JS</text>
+      <path class="firma-trazo" d="M22 92 C 60 100, 104 100, 140 88"/>
+    </svg>
+  </div>
   <main class="app">
     <!-- ================= HOY ================= -->
     <section class="vista" id="vista-hoy" data-vista="hoy">
@@ -42,6 +56,7 @@
         <button type="button" id="cerrarTip" class="cerrar" aria-label="Cerrar">×</button>
       </div>
 
+      <div class="hoy-panel">
       <header class="marca-app">
         <svg class="logo" viewBox="0 0 48 48" aria-hidden="true">
           <defs><linearGradient id="oro" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f3d58a"/><stop offset=".55" stop-color="#d4a84a"/><stop offset="1" stop-color="#a87b26"/></linearGradient></defs>
@@ -71,6 +86,8 @@
         <button type="submit" id="guardar" disabled>Guardar</button>
       </form>
 
+      </div>
+      <div class="hoy-lista">
       <nav class="filtros" role="tablist" aria-label="Mostrar">
         <button class="filtro activo" data-filtro="pendientes" role="tab">Pendientes</button>
         <button class="filtro" data-filtro="hechos" role="tab">Hechos</button>
@@ -82,8 +99,9 @@
         <button id="permiso" class="permiso" hidden>Activar avisos</button>
         <p id="estadoAvisos" class="estado-avisos"></p>
         <p>Toca un pendiente para editarlo. Se guardan en este dispositivo.</p>
-        <p class="version" id="version">Versión 18</p>
+        <p class="version" id="version">Versión 19</p>
       </footer>
+      </div>
     </section>
 
     <!-- ================= CALENDARIO ================= -->
@@ -450,14 +468,14 @@
     </form>
   </dialog>
 
-  <script src="parser.js?v=18"></script>
-  <script src="almacen.js?v=18"></script>
-  <script src="ajustes.js?v=18"></script>
-  <script src="acciones.js?v=18"></script>
-  <script src="categorias.js?v=18"></script>
-  <script src="asistente.js?v=18"></script>
-  <script src="avatar.js?v=18"></script>
-  <script src="contactos.js?v=18"></script>
-  <script src="app.js?v=18"></script>
+  <script src="parser.js?v=19"></script>
+  <script src="almacen.js?v=19"></script>
+  <script src="ajustes.js?v=19"></script>
+  <script src="acciones.js?v=19"></script>
+  <script src="categorias.js?v=19"></script>
+  <script src="asistente.js?v=19"></script>
+  <script src="avatar.js?v=19"></script>
+  <script src="contactos.js?v=19"></script>
+  <script src="app.js?v=19"></script>
 </body>
 </html>

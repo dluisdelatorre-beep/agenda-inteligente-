@@ -9,7 +9,12 @@
 //   avatarAsistente.atencion({estado, ids}) → decide si hace 1–2 pulsos de halo
 //   avatarAsistente.reaccionar('assistant-open' | 'success' | 'greeting')
 (function (raiz) {
-  const ESTADOS = ['idle', 'attention', 'alert', 'greeting', 'assistant-open', 'success'];
+  const ESTADOS = ['idle', 'attention', 'alert', 'greeting', 'assistant-open', 'success', 'return'];
+  // Prioridad de las reacciones: una de menor prioridad no interrumpe a otra que sigue en curso
+  const PRIORIDAD = { 'assistant-open': 3, success: 2, greeting: 2, 'return': 1 };
+  const DURA_REACCION = 900;          // ms que se considera "en curso" una reacción
+  const REGRESO_MIN_FUERA = 60000;    // reacciona al volver solo si estuvo fuera al menos 1 min
+  const REGRESO_ENFRIA = 5 * 60000;   // y como máximo una vez cada 5 min
   const REPETIR_MIN = 10; // si sigue habiendo pendientes que atender, recordarlo como máximo cada 10 min
 
   // Dibujante por defecto: la imagen PNG con capas para respirar, reaccionar y el halo.
@@ -92,12 +97,14 @@
       observador.observe(boton);
     } else visible = true;
     document.addEventListener('visibilitychange', () => { if (!document.hidden && pulsoPendiente) setTimeout(pulso, 400); });
-    // Reacciona cuando la persona toca cualquier botón de la app (sin exagerar: máximo uno cada 1.5 s)
-    document.addEventListener('click', (e) => {
-      const b = e.target.closest && e.target.closest('button, a');
-      if (!b || b.closest('#abrirAsistente') || b.disabled) return;
-      reaccionar('boton');
-    }, true);
+    // Reacciones con significado (no a cada botón, para no cansar): abrir el asistente, crear/completar,
+    // atención real y volver a la app tras un rato fuera.
+    let salioEn = 0;
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) { salioEn = Date.now(); return; }
+      if (salioEn && Date.now() - salioEn >= REGRESO_MIN_FUERA) setTimeout(() => reaccionar('return'), 500);
+      salioEn = 0;
+    });
     programarParpadeo();
     return boton;
   }
@@ -164,21 +171,38 @@
   //  'success'        → tarea creada o terminada: asiente y parpadea
   //  'boton'          → tocaron un botón: parpadea y una leve inclinación
   let ultimoBoton = 0;
+  let enCursoHasta = 0, enCursoPrio = 0, ultimoRegreso = 0, saludado = false;
   function reaccionar(nombre) {
-    if (!boton) return;
+    if (!boton) return false;
     const sinMovimiento = quieto.matches;
-    if (nombre === 'assistant-open') {
+    const ahora = Date.now();
+    const prio = PRIORIDAD[nombre] || 0;
+    if (prio && ahora < enCursoHasta && prio < enCursoPrio) return false; // no pisar una reacción más importante
+    if (nombre === 'greeting') {
+      // Saludo: una sola vez por entrada a la app (no al cambiar de pestaña)
+      if (saludado || !visible || document.hidden) return false;
+      saludado = true;
+      if (!sinMovimiento) { gesto('escucha'); cabeza('asiente'); setTimeout(parpadear, 200); }
+    } else if (nombre === 'return') {
+      if (sinMovimiento || !visible || ahora - ultimoRegreso < REGRESO_ENFRIA) return false;
+      ultimoRegreso = ahora;
+      cabeza('inclina'); setTimeout(parpadear, 140);
+    } else if (nombre === 'assistant-open') {
       gesto('escucha');
       if (!sinMovimiento) { cabeza('inclina'); setTimeout(parpadear, 120); }
     } else if (nombre === 'success') {
       if (!sinMovimiento && visible) { cabeza('asiente'); setTimeout(parpadear, 160); }
     } else if (nombre === 'boton') {
-      if (sinMovimiento || !visible || Date.now() - ultimoBoton < 1500) return;
-      ultimoBoton = Date.now();
+      // Ya no se usa por defecto (reaccionar a cada botón cansa); se deja para quien lo pida explícitamente
+      if (sinMovimiento || !visible || ahora - ultimoBoton < 1500) return false;
+      ultimoBoton = ahora;
       parpadear();
       if (!boton.classList.contains('asiente')) cabeza('inclina');
     }
+    if (prio) { enCursoHasta = ahora + DURA_REACCION; enCursoPrio = prio; }
+    boton.dataset.reaccion = nombre;
     dibujante.estado(nombre, boton);
+    return true;
   }
 
   // Fase 2: cambiar la imagen por un avatar animado sin tocar la app.
@@ -192,5 +216,6 @@
     ESTADOS, crear, atencion, reaccionar, usarDibujante, parpadear,
     get estado() { return boton ? boton.dataset.estado : 'idle'; },
     get movimientoReducido() { return quieto.matches; },
+    get visible() { return visible; },
   };
 })(window);
