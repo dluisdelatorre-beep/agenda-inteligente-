@@ -1880,7 +1880,7 @@
   // Al abrir siempre empieza en Hoy (aunque la dirección traiga #calendario, etc.)
   if (location.hash) history.replaceState(null, '', location.pathname + location.search);
 
-  // ---- Splash de apertura (firma JS) ----
+  // ---- Splash de apertura (marca del producto) ----
   // Está en el HTML, así que se ve desde el primer instante; se retira en cuanto Hoy ya está pintado.
   // Mínimo ~550 ms para que la firma se alcance a ver, sin retrasar la carga; nunca más de 2.5 s.
   const splash = $('splash');
@@ -1894,6 +1894,7 @@
     }, Math.max(0, minimo - (performance.now() - inicioSplash)));
   }
   setTimeout(quitarSplash, 2500);
+  if (splash) splash.addEventListener('click', () => { splash.classList.add('saliendo'); setTimeout(() => { splash.hidden = true; }, 320); avatarAsistente.reaccionar('greeting'); });
 
   Promise.all([ajustes.cargar(), recargar()]).then(async () => {
     quitarSplash();

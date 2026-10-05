@@ -109,6 +109,9 @@ with sync_playwright() as p:
                                                locale="es-MX", timezone_id="America/Cancun")
     pg = ctx.pages[0]
     pg.on("pageerror", lambda e: errores.append("page: " + str(e)))
+    # Reloj fijo a mediodía de Cancún: "hoy a las 8 am" siempre queda vencido (antes fallaba si la prueba corría de madrugada)
+    import datetime as _dt
+    pg.clock.set_system_time(_dt.datetime.now(_dt.timezone(_dt.timedelta(hours=-5))).replace(hour=12, minute=0, second=0, microsecond=0))
     pg.goto(U); pg.wait_for_selector("#resumen h2")
     for i in range(6): pg.fill("#entrada", f"tarea {i}"); pg.press("#entrada", "Enter"); pg.wait_for_timeout(80)
     pg.evaluate("window.scrollTo(0, document.documentElement.scrollHeight)"); pg.wait_for_timeout(200)

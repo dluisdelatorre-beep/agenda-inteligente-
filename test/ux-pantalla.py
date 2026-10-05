@@ -25,11 +25,16 @@ with sync_playwright() as p:
     ctx, pg = abrir(p, 390, 844)
     t0 = time.time()
     pg.goto(U)
-    assert pg.is_visible("#splash") and pg.text_content("#splash .firma-texto") == "JS"
+    assert pg.is_visible("#splash") and "Agenda Inteligente" in pg.text_content("#splash") and "Toca para saltar" in pg.text_content("#splash")
+    assert pg.get_attribute("#splash .splash-logo", "src") == "icons/icon-512.png"
+    fondo = pg.evaluate("getComputedStyle(document.getElementById('splash')).backgroundColor")
+    import json; man = json.loads(pg.evaluate("fetch('manifest.webmanifest').then(r => r.text())"))
+    assert man["background_color"].lower() == "#f6f3ec" and fondo == "rgb(246, 243, 236)", fondo
+    pg.screenshot(path=os.path.join(SALIDA, "ux-telefono-splash.png"))
     pg.wait_for_selector("#splash", state="hidden", timeout=3000)
     dur = time.time() - t0
     assert dur < 2.0, dur
-    paso(f"splash de apertura con la firma JS; pasa a Hoy en {dur:.2f} s (no retrasa la carga)")
+    paso(f"splash con la marca (ícono + 'Agenda Inteligente'), fondo igual al manifest (sin destello); pasa a Hoy en {dur:.2f} s")
     pg.wait_for_timeout(700)
     assert pg.get_attribute("#abrirAsistente", "data-reaccion") == "greeting"
     pg.evaluate(ESPIA)
@@ -119,6 +124,29 @@ with sync_playwright() as p:
     pg.click(".tab[data-ir=calendario]"); pg.wait_for_timeout(300); pg.screenshot(path=os.path.join(SALIDA, "ux-telefono-calendario.png"))
     pg.click(".tab[data-ir=hoy]"); pg.click("#verContactos"); pg.wait_for_timeout(300); pg.screenshot(path=os.path.join(SALIDA, "ux-telefono-contactos.png"))
     ctx.close()
+
+    # ---------- Splash: tocar para saltar · respaldo sin JS ----------
+    ctx, pg = abrir(p, 390, 844)
+    pg.route("**/app.js*", lambda r: (time.sleep(1.5), r.continue_()))  # Hoy tarda: da tiempo a tocar
+    pg.goto(U, wait_until="commit"); pg.wait_for_selector("#splash", state="visible")
+    t1 = time.time(); pg.click("#splash", timeout=1500); pg.wait_for_selector("#splash", state="hidden", timeout=1500)
+    paso(f"'Toca para saltar' quita el splash al instante ({time.time() - t1:.2f} s)")
+    ctx.close()
+    ctx, pg = abrir(p, 390, 844, java_script_enabled=False)
+    pg.goto(U); pg.wait_for_timeout(300)
+    assert pg.is_visible(".sin-js") and "JavaScript" in pg.text_content(".sin-js")
+    assert not pg.is_visible("#splash")
+    ctx.close()
+    ctx, pg = abrir(p, 390, 844)
+    pg.route("**/app.js*", lambda r: r.abort())  # el JS falla
+    pg.goto(U); pg.wait_for_timeout(1000)
+    assert pg.evaluate("getComputedStyle(document.getElementById('splash')).visibility") == "visible"
+    pg.wait_for_timeout(2400)
+    assert pg.evaluate("getComputedStyle(document.getElementById('splash')).visibility") == "hidden"
+    paso("respaldo: sin JS aparece el aviso en español; si el JS falla, el CSS retira el splash solo a los 3 s")
+    ctx.close()
+    # El ERR_FAILED de app.js lo provocamos a propósito en esta prueba: no es un error de la app
+    errores[:] = [e for e in errores if "ERR_FAILED" not in e]
 
     # ---------- Movimiento reducido ----------
     ctx, pg = abrir(p, 390, 844, reduced_motion="reduce")

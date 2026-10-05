@@ -841,20 +841,18 @@ body {
 .elegir-opcion small { color: var(--suave); }
 
 /* =========================================================
-   Splash de apertura: firma JS (solo al abrir)
-   Microanimación breve: aparece la firma y se traza la línea; luego se desvanece hacia Hoy.
+   Splash de apertura: marca del producto (ícono + nombre), solo al abrir.
+   El respaldo que lo retira a los 3 s sin JS vive en el <style> del HTML y no se apaga con
+   movimiento reducido. Con movimiento reducido se queda como póster fijo.
    ========================================================= */
-.firma-texto { font: 600 78px Fraunces, Georgia, serif; fill: url(#oroFirma); letter-spacing: 2px; }
-.firma-trazo { fill: none; stroke: url(#oroFirma); stroke-width: 3; stroke-linecap: round; stroke-dasharray: 130; stroke-dashoffset: 130; }
-.splash .firma-texto { animation: firma-entra var(--dur-panel) var(--curva) both; }
-.splash .firma-trazo { animation: firma-traza .42s .14s var(--curva) forwards; }
-.splash { transition: opacity var(--dur-panel) var(--curva-salida); }
-.splash.saliendo { opacity: 0; pointer-events: none; }
-@keyframes firma-entra { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
-@keyframes firma-traza { to { stroke-dashoffset: 0; } }
+.splash .splash-logo { animation: splash-logo var(--dur-panel) var(--curva) both; }
+.splash .splash-nombre { animation: splash-texto var(--dur-panel) .1s var(--curva) both; }
+.splash.saliendo { opacity: 0; pointer-events: none; transition: opacity var(--dur-panel) var(--curva-salida); }
+@keyframes splash-logo { from { opacity: 0; transform: scale(.92); } to { opacity: 1; transform: none; } }
+@keyframes splash-texto { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) {
-  .splash, .splash * { animation: none !important; transition: none !important; }
-  .firma-trazo { stroke-dashoffset: 0; }
+  .splash .splash-logo, .splash .splash-nombre { animation: none; }
+  .splash.saliendo { transition: none; }
 }
 
 /* =========================================================
