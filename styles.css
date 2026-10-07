@@ -962,3 +962,188 @@ button.cargando::after {
 /* Foco del campo de captura: se ilumina la caja completa (el campo no lleva contorno propio) */
 .captura { transition: border-color var(--dur-estado) var(--curva), box-shadow var(--dur-estado) var(--curva); }
 .captura:focus-within { border-color: var(--acento); box-shadow: var(--sombra), var(--anillo); }
+
+
+/* ===== SELENE · VISIÓN DE ACOMPAÑAMIENTO v23 ===== */
+/* La interfaz no busca llamar la atención sobre sí misma: hace sentir que alguien está pendiente. */
+:root{
+  --presencia-borde: color-mix(in srgb, var(--oro) 26%, var(--linea));
+  --presencia-luz: color-mix(in srgb, var(--oro-claro) 16%, transparent);
+  --presencia-profunda: color-mix(in srgb, var(--acento) 16%, transparent);
+}
+
+.marca-app{
+  margin-bottom:16px;
+  padding:4px 2px;
+}
+.nombre-app{
+  font-size:1.42rem;
+  line-height:1.04;
+}
+.atajos-app{
+  gap:8px;
+}
+.atajos-app .ir-stats{
+  min-width:54px;
+  min-height:48px;
+  border-color:color-mix(in srgb, var(--linea) 72%, transparent);
+  box-shadow:none;
+}
+
+.resumen{
+  min-height:172px;
+  border:1px solid var(--presencia-borde);
+  border-radius:24px;
+  padding:22px 136px 20px 20px;
+  background:
+    radial-gradient(80% 110% at 95% 18%, var(--presencia-luz), transparent 58%),
+    radial-gradient(70% 100% at 5% 100%, rgba(255,255,255,.08), transparent 60%),
+    linear-gradient(145deg, color-mix(in srgb, var(--acento) 94%, #102826), color-mix(in srgb, var(--acento) 74%, #071918));
+  box-shadow:
+    0 1px 0 rgba(255,255,255,.12) inset,
+    0 18px 44px color-mix(in srgb, var(--acento) 24%, transparent);
+}
+.resumen::before{
+  content:'';
+  position:absolute;
+  width:170px;height:170px;
+  right:-34px;bottom:-52px;
+  border-radius:50%;
+  background:radial-gradient(circle, rgba(255,255,255,.11), transparent 68%);
+  pointer-events:none;
+}
+.resumen .hola{
+  margin:0 0 8px;
+  font-size:.82rem;
+  line-height:1.2;
+  font-family:Inter,system-ui,sans-serif;
+  font-weight:600;
+  letter-spacing:.035em;
+  text-transform:uppercase;
+  opacity:.78;
+}
+.resumen h2{
+  margin:0 0 10px;
+  max-width:19ch;
+  font:600 1.38rem/1.12 Fraunces,Georgia,serif;
+  letter-spacing:-.015em;
+  opacity:1;
+}
+.resumen ul{
+  margin-top:12px;
+  max-height:72px;
+  overflow:hidden;
+}
+.resumen li{
+  gap:8px;
+  font-size:.86rem;
+  line-height:1.25;
+}
+.resumen .vacio{
+  max-width:29ch;
+  font-size:.9rem;
+  line-height:1.45;
+  opacity:.84;
+}
+.resumen .atrasados{
+  margin-top:10px;
+  max-width:31ch;
+  color:#ffe0c9;
+  font-size:.82rem;
+  line-height:1.35;
+}
+
+/* Presencia, no mascota: el avatar tiene peso visual y espacio para respirar. */
+.resumen .asistente-btn{
+  right:17px;
+  bottom:18px;
+  width:108px;
+  height:108px;
+}
+.resumen .asistente-btn .asistente{
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,.35),
+    0 0 0 4px rgba(243,213,138,.52),
+    0 14px 28px rgba(0,0,0,.26);
+}
+.avatar-halo{ inset:-18px; }
+
+/* Capturar algo debe sentirse como entregárselo a la asistente, no llenar un formulario. */
+.titulo-dia{
+  margin-top:24px;
+}
+.captura{
+  border-radius:18px;
+  padding:14px;
+  box-shadow:0 10px 28px rgba(16,32,32,.055);
+}
+.captura input{
+  min-height:44px;
+  font-size:1rem;
+}
+.captura button{
+  min-height:44px;
+  padding-inline:20px;
+}
+
+/* Jerarquía tranquila: menos ruido, más certeza. */
+.item{
+  border-radius:16px;
+  padding:14px 12px;
+  box-shadow:0 8px 22px rgba(16,32,32,.045);
+}
+.item .check{
+  width:28px;height:28px;
+}
+.grupo{
+  margin-top:22px;
+  letter-spacing:.08em;
+}
+.filtros{
+  margin-top:24px;
+}
+
+/* La navegación acompaña; no compite con el contenido. */
+.tabbar{
+  backdrop-filter:blur(18px);
+  -webkit-backdrop-filter:blur(18px);
+  background:color-mix(in srgb, var(--papel) 92%, transparent);
+}
+.tab-nuevo span{
+  box-shadow:
+    0 0 0 4px var(--fondo),
+    0 12px 28px color-mix(in srgb, var(--acento) 32%, transparent);
+}
+
+/* Panel de la asistente: misma voz y misma calma que la tarjeta de Hoy. */
+.hoja-cuerpo{
+  border-top:1px solid var(--presencia-borde);
+}
+.asis-cabeza{
+  padding-top:2px;
+}
+.asis-textos h2{
+  font-family:Fraunces,Georgia,serif;
+  letter-spacing:-.01em;
+}
+.asis-botones button{
+  border-radius:15px;
+  min-height:50px;
+}
+
+/* Tablet y escritorio: conservar la presencia, no inflarla hasta parecer banner. */
+@media (min-width:768px){
+  .resumen{min-height:184px;padding-right:154px;}
+  .resumen .asistente-btn{width:122px;height:122px;right:20px;bottom:20px;}
+}
+@media (min-width:1100px){
+  .resumen{min-height:196px;}
+  .hoy-panel{max-width:410px;}
+}
+
+/* Movimiento: el reposo se mantiene vivo pero nunca infantil o insistente. */
+.avatar-respira{animation-duration:5.6s;}
+@keyframes avatar-respira{
+  0%,100%{transform:translateY(0) scale(1)}
+  50%{transform:translateY(-2px) scale(1.012)}
+}
