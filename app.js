@@ -65,12 +65,12 @@
     const hora = ahora.getHours();
     const hola = document.createElement('p');
     hola.className = 'hola';
-    hola.textContent = '¡Hola! ' + (hora < 12 ? 'Buen día' : hora < 19 ? 'Buenas tardes' : 'Buenas noches');
+    hola.textContent = (hora < 12 ? 'Buen día' : hora < 19 ? 'Buenas tardes' : 'Buenas noches') + '. Estoy contigo.';
     caja.appendChild(hola);
     const h2 = document.createElement('h2');
     h2.textContent = deHoy.length
-      ? `Hoy tienes ${deHoy.length} ${deHoy.length === 1 ? 'pendiente' : 'pendientes'}`
-      : 'Tu día';
+      ? `Yo estoy pendiente de ${deHoy.length} ${deHoy.length === 1 ? 'cosa importante' : 'cosas importantes'} hoy`
+      : 'Sigue con tu día';
     caja.appendChild(h2);
 
     if (deHoy.length) {
@@ -89,13 +89,13 @@
     } else {
       const p = document.createElement('p');
       p.className = 'vacio';
-      p.textContent = 'Estoy aquí para ayudarte a recordar lo importante. Hoy no tienes nada agendado.';
+      p.textContent = 'Yo estoy pendiente contigo. Cuando necesites recordar algo, dímelo como lo dirías normalmente.';
       caja.appendChild(p);
     }
     if (atrasados.length) {
       const p = document.createElement('p');
       p.className = 'atrasados';
-      p.textContent = `Ojo: ${atrasados.length} ${atrasados.length === 1 ? 'pendiente atrasado' : 'pendientes atrasados'} de días anteriores.`;
+      p.textContent = `Hay ${atrasados.length} ${atrasados.length === 1 ? 'pendiente de días anteriores' : 'pendientes de días anteriores'}. No se te van a perder: aquí siguen contigo.`;
       caja.appendChild(p);
     }
   }
