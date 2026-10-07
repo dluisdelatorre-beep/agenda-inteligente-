@@ -785,6 +785,7 @@
     const ORDEN = { hoy: 0, estadisticas: 0.5, contactos: 0.6, calendario: 1, buscar: 2, ajustes: 3 };
     const direccion = vistaActual && vista !== vistaActual ? (ORDEN[vista] > ORDEN[vistaActual] ? 'entra-adelante' : 'entra-atras') : null;
     vistaActual = vista;
+    if (window.avatarAsistente && avatarAsistente.mirar) avatarAsistente.mirar(vista === 'hoy' ? 'frente' : 'contenido');
     document.querySelectorAll('.vista').forEach((v) => {
       v.hidden = v.dataset.vista !== vista; // la anterior se oculta al instante: nunca hay dos encimadas
       v.classList.remove('entra-adelante', 'entra-atras');
@@ -827,6 +828,14 @@
     }, vistaActual === 'hoy' ? 0 : 150);
   });
   window.addEventListener('popstate', () => mostrarVista((history.state && history.state.vista) || 'hoy'));
+
+  // El Avatar acompaña la acción: al abrir una hoja deja de mirar al frente y atiende el contenido.
+  const observadorDialogos = new MutationObserver(() => {
+    if (!window.avatarAsistente || !avatarAsistente.mirar) return;
+    const hayDialogo = !!document.querySelector('dialog[open]');
+    avatarAsistente.mirar(hayDialogo ? 'panel' : (vistaActual === 'hoy' ? 'frente' : 'contenido'));
+  });
+  document.querySelectorAll('dialog').forEach((dlg) => observadorDialogos.observe(dlg, { attributes: true, attributeFilter: ['open'] }));
 
   // =====================================================================
   // CALENDARIO — vista mensual; misma información de IndexedDB
@@ -1896,6 +1905,13 @@
       splash.classList.add('saliendo');
       setTimeout(() => {
         splash.hidden = true;
+        const appRaiz = document.querySelector('.app');
+        if (appRaiz) {
+          appRaiz.classList.remove('app-preentrada');
+          appRaiz.classList.add('entrada-inicial');
+          appRaiz.addEventListener('animationend', () => appRaiz.classList.remove('entrada-inicial'), { once: true });
+        }
+        if (window.avatarAsistente && avatarAsistente.mirar) avatarAsistente.mirar('frente');
         setTimeout(() => avatarAsistente.reaccionar('greeting'), movimientoReducido ? 0 : 180);
       }, salidaSplash);
     }, espera);
