@@ -846,9 +846,9 @@ body {
    ========================================================= */
 .firma-texto { font: 600 78px Fraunces, Georgia, serif; fill: url(#oroFirma); letter-spacing: 2px; }
 .firma-trazo { fill: none; stroke: url(#oroFirma); stroke-width: 3; stroke-linecap: round; stroke-dasharray: 130; stroke-dashoffset: 130; }
-.splash .firma-texto { animation: firma-entra var(--dur-panel) var(--curva) both; }
-.splash .firma-trazo { animation: firma-traza .42s .14s var(--curva) forwards; }
-.splash { transition: opacity var(--dur-panel) var(--curva-salida); }
+.splash .firma-texto { animation: firma-entra .68s var(--curva) both; }
+.splash .firma-trazo { animation: firma-traza .92s .34s var(--curva) forwards; }
+.splash { transition: opacity .42s var(--curva-salida); }
 .splash.saliendo { opacity: 0; pointer-events: none; }
 @keyframes firma-entra { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 @keyframes firma-traza { to { stroke-dashoffset: 0; } }
