@@ -1386,3 +1386,191 @@ button.cargando::after {
 @media (prefers-reduced-motion: reduce){
   .hoja-abajo[open] .asis-avatar{animation:none}
 }
+
+
+/* ===== HIGGSFIELD REALISTA v25 ===== */
+/* La imagen maestra de Higgsfield deja de ser referencia: ahora forma parte de la interfaz real. */
+html,body{
+  min-height:100%;
+  background:#032f27;
+}
+body{
+  position:relative;
+  background:
+    linear-gradient(180deg,rgba(2,35,29,.10),rgba(2,35,29,.32)),
+    url('carga/piel-higgsfield-v24.png') center top / cover fixed no-repeat;
+}
+body::before{
+  content:'';
+  position:fixed;
+  inset:0;
+  z-index:-1;
+  pointer-events:none;
+  background:
+    radial-gradient(90% 54% at 18% 0%,rgba(255,226,150,.16),transparent 58%),
+    linear-gradient(180deg,rgba(3,47,39,.05),rgba(3,47,39,.28));
+}
+.app{
+  position:relative;
+  isolation:isolate;
+  background:transparent;
+}
+.vista{
+  transform-origin:50% 28%;
+}
+.vista:not([hidden]){
+  animation:vista-desde-fondo .62s cubic-bezier(.18,.88,.24,1) both;
+}
+@keyframes vista-desde-fondo{
+  0%{
+    opacity:0;
+    transform:perspective(1100px) translateZ(-150px) translateY(26px) scale(.92);
+    filter:blur(12px) saturate(.82);
+  }
+  58%{
+    opacity:1;
+    transform:perspective(1100px) translateZ(8px) translateY(-2px) scale(1.008);
+    filter:blur(0) saturate(1.04);
+  }
+  100%{opacity:1;transform:none;filter:none}
+}
+
+/* Superficies realistas: dejan ver la piel de Higgsfield y ganan profundidad física. */
+.hoy-panel,
+.hoy-lista,
+.bloque,
+.item,
+.captura,
+.busqueda,
+.mes,
+.stats-tiles .tile,
+.contacto{
+  background:
+    linear-gradient(145deg,rgba(255,250,240,.91),rgba(241,233,211,.82));
+  border:1px solid rgba(255,225,149,.34);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.82),
+    inset 0 -1px 0 rgba(115,83,22,.06),
+    0 14px 36px rgba(0,34,27,.14),
+    0 3px 8px rgba(0,34,27,.08);
+  backdrop-filter:blur(20px) saturate(142%);
+  -webkit-backdrop-filter:blur(20px) saturate(142%);
+}
+.hoy-panel,
+.hoy-lista{
+  border-radius:28px;
+}
+.hoy-panel{
+  padding:18px;
+}
+.hoy-lista{
+  padding:14px;
+}
+.resumen{
+  background:
+    linear-gradient(145deg,rgba(8,106,79,.92),rgba(2,55,45,.95)),
+    url('carga/piel-higgsfield-v24.png') 58% 22% / 170% auto no-repeat;
+  border:1px solid rgba(255,222,132,.48);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.16),
+    inset 0 -1px 0 rgba(255,221,124,.10),
+    0 24px 56px rgba(0,34,27,.34);
+}
+.tabbar{
+  background:
+    linear-gradient(145deg,rgba(255,250,240,.92),rgba(238,229,205,.85));
+  border-color:rgba(255,222,132,.32);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.85),
+    0 -8px 30px rgba(0,38,29,.15);
+  backdrop-filter:blur(22px) saturate(150%);
+  -webkit-backdrop-filter:blur(22px) saturate(150%);
+}
+
+/* Ventanas: del degradado a sólido, como material que se condensa. */
+.hoja,
+.hoja-cuerpo{
+  background:
+    linear-gradient(145deg,rgba(255,250,240,.97),rgba(238,229,205,.95));
+  border:1px solid rgba(255,222,132,.36);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.88),
+    0 28px 90px rgba(0,28,22,.38);
+  backdrop-filter:blur(28px) saturate(150%);
+  -webkit-backdrop-filter:blur(28px) saturate(150%);
+}
+.hoja[open]{
+  animation:ventana-condensa .58s cubic-bezier(.18,.9,.22,1) both;
+}
+.hoja-abajo[open] .hoja-cuerpo{
+  animation:hoja-condensa .64s cubic-bezier(.18,.9,.22,1) both;
+}
+@keyframes ventana-condensa{
+  0%{
+    opacity:0;
+    transform:translateY(34px) scale(.78);
+    filter:blur(20px) brightness(1.16);
+    background-color:rgba(255,250,240,.08);
+  }
+  42%{
+    opacity:.84;
+    transform:translateY(4px) scale(1.015);
+    filter:blur(5px) brightness(1.05);
+  }
+  100%{opacity:1;transform:none;filter:none}
+}
+@keyframes hoja-condensa{
+  0%{
+    opacity:0;
+    transform:translateY(96px) scale(.84);
+    filter:blur(22px);
+    clip-path:inset(72% 3% 0 58% round 34px);
+  }
+  52%{
+    opacity:1;
+    transform:translateY(-4px) scale(1.012);
+    filter:blur(3px);
+    clip-path:inset(0 0 0 0 round 28px);
+  }
+  100%{
+    opacity:1;
+    transform:none;
+    filter:none;
+    clip-path:inset(0 0 0 0 round 28px);
+  }
+}
+
+/* El mismo Avatar acompaña dentro del diálogo: no se clona ni se sustituye. */
+.asistente-btn.avatar-en-dialogo{
+  position:absolute !important;
+  right:18px !important;
+  top:52px !important;
+  bottom:auto !important;
+  width:82px !important;
+  height:82px !important;
+  z-index:8;
+  filter:drop-shadow(0 12px 20px rgba(0,0,0,.22));
+}
+.asistente-btn.avatar-en-dialogo .avatar-saludo{display:none}
+.asistente-btn.avatar-en-dialogo.mira-tarea .avatar-cabeza{
+  animation:avatar-mira-tarea 1.5s cubic-bezier(.2,.8,.2,1) both;
+}
+@keyframes avatar-mira-tarea{
+  0%{transform:rotate(0) translate(0,0)}
+  32%{transform:rotate(7deg) translate(-3px,3px)}
+  58%{transform:rotate(5deg) translate(-2px,4px)}
+  100%{transform:rotate(6deg) translate(-2px,3px)}
+}
+.asistente-btn.avatar-en-dialogo.parpadea .avatar-cabeza{
+  transform:rotate(6deg) translate(-2px,3px);
+}
+@media (max-width:767px){
+  body{background-position:center top}
+  .hoy-panel,.hoy-lista{border-radius:24px}
+}
+@media (prefers-reduced-motion: reduce){
+  .vista:not([hidden]),.hoja[open],.hoja-abajo[open] .hoja-cuerpo,
+  .asistente-btn.avatar-en-dialogo.mira-tarea .avatar-cabeza{
+    animation:none!important;filter:none!important;clip-path:none!important;
+  }
+}
