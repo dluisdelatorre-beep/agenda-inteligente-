@@ -1226,3 +1226,146 @@ button.cargando::after {
 :root[data-theme="oscuro"] .titulo-dia h2{
   color:#ffe09a;
 }
+
+
+/* ===== COREOGRAFÍA AVATAR + VENTANAS v24 ===== */
+/* Saludo real del Avatar: gesto visible y globo breve, sin sustituir el asset aprobado. */
+.avatar-saludo{
+  position:absolute;
+  right:88px;
+  top:5px;
+  z-index:5;
+  width:max-content;
+  max-width:172px;
+  padding:9px 12px;
+  border:1px solid rgba(255,220,128,.48);
+  border-radius:16px 16px 5px 16px;
+  background:
+    linear-gradient(145deg,rgba(7,91,69,.97),rgba(3,59,49,.98));
+  color:#fff5da;
+  box-shadow:0 12px 30px rgba(0,0,0,.24),inset 0 1px 0 rgba(255,255,255,.12);
+  font:600 .82rem/1.2 Inter,system-ui,sans-serif;
+  letter-spacing:.005em;
+  opacity:0;
+  transform:translate(12px,10px) scale(.88);
+  transform-origin:100% 100%;
+  pointer-events:none;
+}
+.asistente-btn.saluda .avatar-saludo{
+  animation:avatar-globo-saludo 2.55s cubic-bezier(.2,.8,.2,1) both;
+}
+.asistente-btn.saluda .avatar-reaccion{
+  animation:avatar-saluda 1.45s cubic-bezier(.2,.8,.2,1);
+}
+@keyframes avatar-saluda{
+  0%{transform:translateY(0) rotate(0) scale(1)}
+  18%{transform:translate(-2px,-4px) rotate(-6deg) scale(1.035)}
+  38%{transform:translate(2px,-5px) rotate(5deg) scale(1.045)}
+  58%{transform:translate(-1px,-3px) rotate(-3deg) scale(1.03)}
+  78%{transform:translateY(-2px) rotate(1.5deg) scale(1.018)}
+  100%{transform:none}
+}
+@keyframes avatar-globo-saludo{
+  0%,8%{opacity:0;transform:translate(12px,10px) scale(.88)}
+  18%,68%{opacity:1;transform:translate(0,0) scale(1)}
+  86%,100%{opacity:0;transform:translate(4px,-5px) scale(.96)}
+}
+
+/* Las ventanas ya no aparecen: se proyectan desde la zona del Avatar. */
+.hoja{
+  transform-origin:88% 92%;
+}
+.hoja[open]{
+  animation:ventana-materializa .46s cubic-bezier(.18,.88,.25,1) both;
+}
+.hoja::backdrop{
+  background:
+    radial-gradient(circle at 82% 78%,rgba(7,91,69,.22),transparent 30%),
+    rgba(1,22,18,.50);
+  animation:velo-materializa .42s ease-out both;
+}
+@keyframes ventana-materializa{
+  0%{
+    opacity:0;
+    transform:translate(28px,42px) scale(.78) rotate(1.6deg);
+    filter:blur(7px);
+  }
+  52%{
+    opacity:1;
+    transform:translate(-2px,-3px) scale(1.018) rotate(-.25deg);
+    filter:blur(0);
+  }
+  100%{
+    opacity:1;
+    transform:none;
+    filter:none;
+  }
+}
+@keyframes velo-materializa{
+  from{opacity:0}
+  to{opacity:1}
+}
+
+/* Hojas inferiores: apertura en dos tiempos, desde la esquina del Avatar y luego asentando. */
+.hoja-abajo{
+  perspective:900px;
+}
+.hoja-abajo[open] .hoja-cuerpo{
+  transform-origin:88% 100%;
+  animation:hoja-proyecta .54s cubic-bezier(.16,.9,.22,1) both;
+}
+@keyframes hoja-proyecta{
+  0%{
+    opacity:0;
+    transform:translate(34px,92px) scale(.80) rotateX(8deg) rotateZ(1deg);
+    filter:blur(8px);
+    clip-path:inset(72% 5% 0 58% round 28px);
+  }
+  58%{
+    opacity:1;
+    transform:translate(-3px,-4px) scale(1.012) rotateX(0) rotateZ(-.15deg);
+    filter:blur(0);
+    clip-path:inset(0 0 0 0 round 24px);
+  }
+  100%{
+    opacity:1;
+    transform:none;
+    filter:none;
+    clip-path:inset(0 0 0 0 round 24px);
+  }
+}
+.hoja-abajo[open] .asis-cabeza,
+.hoja-abajo[open] .ficha-cabeza{
+  animation:contenido-revela .38s .18s ease-out both;
+}
+.hoja-abajo[open] .asis-botones,
+.hoja-abajo[open] .asis-contenido,
+.hoja-abajo[open] .ficha-acciones,
+.hoja-abajo[open] .ficha-datos,
+.hoja-abajo[open] .campos-contacto{
+  animation:contenido-revela .40s .24s ease-out both;
+}
+@keyframes contenido-revela{
+  from{opacity:0;transform:translateY(12px)}
+  to{opacity:1;transform:none}
+}
+@media (prefers-reduced-motion: reduce){
+  .asistente-btn.saluda .avatar-reaccion,
+  .asistente-btn.saluda .avatar-saludo,
+  .hoja[open],
+  .hoja-abajo[open] .hoja-cuerpo,
+  .hoja-abajo[open] .asis-cabeza,
+  .hoja-abajo[open] .ficha-cabeza,
+  .hoja-abajo[open] .asis-botones,
+  .hoja-abajo[open] .asis-contenido,
+  .hoja-abajo[open] .ficha-acciones,
+  .hoja-abajo[open] .ficha-datos,
+  .hoja-abajo[open] .campos-contacto{
+    animation:none;
+    filter:none;
+    clip-path:none;
+  }
+}
+@media (min-width:768px){
+  .avatar-saludo{right:108px;top:8px;max-width:190px}
+}
