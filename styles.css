@@ -1650,3 +1650,39 @@ body { background:#f4efe3 !important; }
   .hoja-cuerpo { max-height:calc(100dvh - 18px); overflow:auto; overscroll-behavior:contain; }
   .campos-contacto { padding-bottom:calc(20px + env(safe-area-inset-bottom)); }
 }
+
+/* ===== v27 · acabado esmeralda de alto contraste ===== */
+:root{
+  --fondo:#052f27;--papel:#0a4438;--tinta:#fff6df;--suave:#d9cda9;--linea:#246d5b;
+  --acento:#64e1bd;--sobre-acento:#032a23;--atrasado-resumen:#ffd38b;color-scheme:dark;
+}
+body,body::before{background:#052f27 !important;background-image:none !important}
+.app{position:relative}
+.hoy-panel,.hoy-lista,.bloque,.item,.captura,.mes,.stats-tiles>*,.contacto,.hoja,.hoja-cuerpo{
+  background:#0a4438 !important;color:#fff6df !important;border-color:#246d5b !important;
+  box-shadow:0 14px 34px rgba(0,18,14,.24),inset 0 1px 0 rgba(255,255,255,.045) !important;
+}
+.hoy-panel{background:linear-gradient(180deg,#0b493c 0%,#083b31 100%) !important}
+.hoy-lista{background:#07372e !important}
+.nombre-app,.encabezado h1,.titulo-dia h2,.bloque-titulo{color:#f0c96c !important;text-shadow:0 1px 12px rgba(240,201,108,.08)}
+.fecha-hoy,.conteo,.nota,.pie,.estado-avisos,.stats-intro{color:#d9cda9 !important}
+.resumen{
+  background:linear-gradient(145deg,#063b31 0%,#0b5a49 100%) !important;color:#fff6df !important;
+  border:1px solid #26705d !important;box-shadow:0 12px 28px rgba(0,18,14,.3),inset 0 1px 0 rgba(255,255,255,.06) !important
+}
+.resumen .hora{color:#8ff0d2 !important;opacity:1}
+.resumen .atrasados{color:#ffd38b !important}
+.captura input,.busqueda input,.campos-contacto input,.campos-contacto textarea{
+  background:#062f28 !important;color:#fff6df !important;border-color:#246d5b !important
+}
+.captura input::placeholder,.busqueda input::placeholder,.campos-contacto input::placeholder,.campos-contacto textarea::placeholder{color:#b9b091 !important;opacity:1}
+.filtro,.chip,.secundario,.secundario-ancho,.ir-stats,.volver,.redondo,.ir-hoy{color:#cce8df !important;border-color:#2c7563 !important}
+.filtro.activo,.chip.activo,.primario,.captura button:not(:disabled){background:#64e1bd !important;color:#032a23 !important;border-color:#64e1bd !important}
+.tabbar{
+  background:#062f28 !important;border-color:#246d5b !important;
+  box-shadow:0 -10px 30px rgba(0,18,14,.32) !important
+}
+.tab{color:#b9cfc7 !important}.tab.activo{color:#64e1bd !important}.tab-nuevo>span{background:#f0c96c !important;color:#07372e !important}
+.hoja::backdrop,.hoja-abajo::backdrop{background:rgba(0,18,14,.72) !important}
+.asistente-btn.avatar-en-dialogo{display:none !important}.hoja-abajo .asis-avatar{display:block !important}
+@media(max-width:767px){.hoja-cuerpo{max-height:calc(100dvh - 18px);overflow:auto;overscroll-behavior:contain}}
