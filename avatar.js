@@ -53,6 +53,7 @@
 
   let dibujante = dibujantePng;
   let boton = null;
+  let miradaActual = 'frente';
   let ultimoEstado = 'idle';
   let idsVistos = '';
   let ultimoPulso = 0;
@@ -71,6 +72,7 @@
     boton.className = 'asistente-btn';
     boton.id = 'abrirAsistente';
     boton.dataset.estado = 'idle';
+    boton.dataset.mirada = miradaActual;
     boton.setAttribute('aria-label', 'Abrir tu asistente');
     const escena = document.createElement('span');
     escena.className = 'avatar-escena';
@@ -254,6 +256,17 @@
     revisar();
   }
 
+  // Dirección corporal contextual. No es un saludo: expresa qué está observando.
+  function mirar(destino = 'frente') {
+    const permitidas = ['frente', 'contenido', 'pendientes', 'panel'];
+    miradaActual = permitidas.includes(destino) ? destino : 'frente';
+    if (boton) {
+      boton.dataset.mirada = miradaActual;
+      dibujante.estado('mirada:' + miradaActual, boton);
+    }
+    return miradaActual;
+  }
+
   // Fase 2: cambiar la imagen por un avatar animado sin tocar la app.
   function usarDibujante(nuevo) {
     if (!nuevo || typeof nuevo.montar !== 'function') return;
@@ -262,8 +275,9 @@
   }
 
   raiz.avatarAsistente = {
-    ESTADOS, crear, atencion, reaccionar, usarDibujante, parpadear,
+    ESTADOS, crear, atencion, reaccionar, mirar, usarDibujante, parpadear,
     get estado() { return boton ? boton.dataset.estado : 'idle'; },
+    get mirada() { return miradaActual; },
     get movimientoReducido() { return quieto.matches; },
     get visible() { return visible; },
   };
