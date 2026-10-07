@@ -1369,3 +1369,20 @@ button.cargando::after {
 @media (min-width:768px){
   .avatar-saludo{right:108px;top:8px;max-width:190px}
 }
+
+
+/* Avatar visible dentro de la hoja también saluda */
+.hoja-abajo[open] .asis-avatar{
+  transform-origin:50% 88%;
+  animation:avatar-panel-saluda 1.18s .12s cubic-bezier(.2,.82,.24,1) both;
+}
+@keyframes avatar-panel-saluda{
+  0%{opacity:0;transform:translate(14px,18px) scale(.78) rotate(7deg)}
+  24%{opacity:1;transform:translate(-2px,-3px) scale(1.06) rotate(-6deg)}
+  48%{transform:translate(2px,-1px) scale(1.02) rotate(4deg)}
+  72%{transform:translate(-1px,0) scale(1.01) rotate(-2deg)}
+  100%{opacity:1;transform:none}
+}
+@media (prefers-reduced-motion: reduce){
+  .hoja-abajo[open] .asis-avatar{animation:none}
+}
