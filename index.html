@@ -17,10 +17,11 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <style>
-    .splash{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;
-      background:radial-gradient(120% 80% at 50% 35%,#16514f 0%,#0f3d3e 45%,#0a2b2b 100%)}
-    .splash-firma{width:150px;height:auto}
+    .splash{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:#075b45}
+    .splash-firma{width:150px;height:auto;transform-origin:50% 58%;animation:js-giro 2.6s cubic-bezier(.45,.05,.55,.95) infinite;will-change:transform}
+    @keyframes js-giro{0%,100%{transform:rotate(-1.6deg) scale(1)}42%{transform:rotate(1.8deg) scale(1.012)}72%{transform:rotate(-.6deg) scale(1.006)}}
     .splash[hidden]{display:none}
+    @media(prefers-reduced-motion:reduce){.splash-firma{animation:none}}
   </style>
   <link rel="stylesheet" href="styles.css?v=25">
   <script>
@@ -44,7 +45,7 @@
       <path class="firma-trazo" d="M22 92 C 60 100, 104 100, 140 88"/>
     </svg>
   </div>
-  <main class="app">
+  <main class="app app-preentrada">
     <!-- ================= HOY ================= -->
     <section class="vista" id="vista-hoy" data-vista="hoy">
       <div class="banda" id="instalar" hidden>
