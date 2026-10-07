@@ -1881,18 +1881,26 @@
   if (location.hash) history.replaceState(null, '', location.pathname + location.search);
 
   // ---- Splash de apertura (firma JS) ----
-  // Está en el HTML, así que se ve desde el primer instante; se retira en cuanto Hoy ya está pintado.
-  // Mínimo ~550 ms para que la firma se alcance a ver, sin retrasar la carga; nunca más de 2.5 s.
+  // Ritual de apertura de marca: debe sentirse, no parpadear.
+  // Permanece visible al menos 2.2 s y termina antes de 3 s en condiciones normales.
   const splash = $('splash');
   const inicioSplash = performance.now();
+  const movimientoReducido = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const minimoSplash = 2200;
+  const salidaSplash = movimientoReducido ? 0 : 420;
   function quitarSplash() {
     if (!splash || splash.hidden || splash.classList.contains('saliendo')) return;
-    const minimo = matchMedia('(prefers-reduced-motion: reduce)').matches ? 250 : 550;
+    const espera = Math.max(0, minimoSplash - (performance.now() - inicioSplash));
     setTimeout(() => {
-      splash.classList.add('saliendo'); // no bloquea: deja de recibir toques desde aquí
-      setTimeout(() => { splash.hidden = true; setTimeout(() => avatarAsistente.reaccionar('greeting'), 250); }, 320);
-    }, Math.max(0, minimo - (performance.now() - inicioSplash)));
+      if (!splash || splash.hidden || splash.classList.contains('saliendo')) return;
+      splash.classList.add('saliendo');
+      setTimeout(() => {
+        splash.hidden = true;
+        setTimeout(() => avatarAsistente.reaccionar('greeting'), movimientoReducido ? 0 : 180);
+      }, salidaSplash);
+    }, espera);
   }
+  // Respaldo: si algo tarda en inicializar, el splash comienza a salir a los 2.5 s.
   setTimeout(quitarSplash, 2500);
 
   Promise.all([ajustes.cargar(), recargar()]).then(async () => {
