@@ -6,7 +6,7 @@
    ========================================================= */
 
 /* ---- Colores de acento: un tono para claro y otro para oscuro ---- */
-:root, [data-accent="verde"] { --ac-claro: #0f3d3e; --ac-oscuro: #7fc8c2; }
+:root, [data-accent="verde"] { --ac-claro: #075b45; --ac-oscuro: #63c9a8; }
 [data-accent="naranja"] { --ac-claro: #b4541f; --ac-oscuro: #f0a06b; }
 [data-accent="azul"]    { --ac-claro: #2b5aa8; --ac-oscuro: #8fb3f0; }
 [data-accent="morado"]  { --ac-claro: #6447a3; --ac-oscuro: #b9a2ec; }
@@ -14,31 +14,31 @@
 
 /* ---- Tema claro (predeterminado) ---- */
 :root {
-  --fondo: #f6f3ec;
-  --papel: #ffffff;
-  --tinta: #1d2626;
-  --suave: #5f6b6b;
-  --linea: #e4dfd3;
-  --ok: #2f7d5b;
-  --tarde: #b3402b;
+  --fondo: #f7f1e3;
+  --papel: #fffaf0;
+  --tinta: #173b32;
+  --suave: #69766f;
+  --linea: #dfd1ad;
+  --ok: #18745a;
+  --tarde: #a84b36;
   --acento: var(--ac-claro);
-  --sobre-acento: #ffffff;
-  --atrasado-resumen: #ffd2b8;
+  --sobre-acento: #fff7df;
+  --atrasado-resumen: #ffe0c7;
   --radio: 14px;
   --barra: 64px;
   color-scheme: light;
 }
 /* ---- Tema oscuro: elegido a mano, o automático si el sistema está en oscuro ---- */
 :root[data-theme="oscuro"] {
-  --fondo: #111717; --papel: #1a2222; --tinta: #eef1ee; --suave: #9aa8a6; --linea: #2b3636;
-  --ok: #6cc59a; --tarde: #f08a75; --acento: var(--ac-oscuro); --sobre-acento: #0d1515;
-  --atrasado-resumen: #7a2d16; color-scheme: dark;
+  --fondo: #032f27; --papel: #073e33; --tinta: #f6ecd2; --suave: #c4baa0; --linea: #2f6656;
+  --ok: #70d1ad; --tarde: #f19a7f; --acento: var(--ac-oscuro); --sobre-acento: #032f27;
+  --atrasado-resumen: #ffc9a7; color-scheme: dark;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="claro"]):not([data-theme="oscuro"]) {
-    --fondo: #111717; --papel: #1a2222; --tinta: #eef1ee; --suave: #9aa8a6; --linea: #2b3636;
-    --ok: #6cc59a; --tarde: #f08a75; --acento: var(--ac-oscuro); --sobre-acento: #0d1515;
-    --atrasado-resumen: #7a2d16; color-scheme: dark;
+    --fondo: #032f27; --papel: #073e33; --tinta: #f6ecd2; --suave: #c4baa0; --linea: #2f6656;
+    --ok: #70d1ad; --tarde: #f19a7f; --acento: var(--ac-oscuro); --sobre-acento: #032f27;
+    --atrasado-resumen: #ffc9a7; color-scheme: dark;
   }
 }
 /* ---- Sistema de movimiento (un solo juego de tiempos y curvas para toda la app) ----
@@ -466,7 +466,7 @@ body {
 /* =========================================================
    Diseño "asistente": marca, tarjeta de saludo, oro y botón +
    ========================================================= */
-:root { --oro: #c99a3c; --oro-claro: #f3d58a; --sombra: 0 1px 2px rgba(16, 32, 32, .04), 0 6px 18px rgba(16, 32, 32, .06); }
+:root { --oro: #d7a63c; --oro-claro: #ffe39a; --oro-profundo: #a96f12; --sombra: 0 1px 2px rgba(7, 45, 37, .05), 0 8px 24px rgba(7, 45, 37, .08); }
 
 .marca-app { display: flex; align-items: center; gap: 12px; margin: 0 0 18px; }
 .marca-app .logo { width: 46px; height: 46px; flex: none; filter: drop-shadow(0 2px 4px rgba(150, 110, 30, .25)); }
@@ -1146,4 +1146,83 @@ button.cargando::after {
 @keyframes avatar-respira{
   0%,100%{transform:translateY(0) scale(1)}
   50%{transform:translateY(-2px) scale(1.012)}
+}
+
+
+/* ===== PALETA ESMERALDA + ORO OFICIAL v23.2 ===== */
+.nombre-app,
+.encabezado h1,
+.titulo-dia h2{
+  color:var(--oro-profundo);
+}
+.marca-app .logo{
+  filter:drop-shadow(0 3px 8px rgba(190,132,26,.28));
+}
+.marca-app .ir-stats{
+  border-color:color-mix(in srgb,var(--oro) 34%,var(--linea));
+  color:#8f651d;
+  background:linear-gradient(180deg,#fffaf0,#f8efd9);
+}
+.resumen{
+  background:
+    radial-gradient(95% 120% at 12% 0%, rgba(72,183,137,.22), transparent 52%),
+    radial-gradient(80% 110% at 100% 18%, rgba(255,227,154,.20), transparent 58%),
+    linear-gradient(145deg,#0a6b50 0%,#04513f 48%,#033b31 100%);
+  border-color:rgba(255,210,104,.38);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.14),
+    0 18px 44px rgba(3,68,52,.22);
+}
+.resumen .hola,
+.resumen h2{
+  color:#ffe09a;
+  text-shadow:0 1px 0 rgba(65,37,0,.22);
+}
+.resumen .vacio,
+.resumen li{
+  color:#fff8e7;
+}
+.captura:focus-within{
+  border-color:var(--oro);
+  box-shadow:var(--sombra),0 0 0 3px rgba(215,166,60,.18);
+}
+.tab.activo{
+  color:#8f651d;
+}
+.tab.activo::after{
+  background:var(--oro);
+  box-shadow:0 0 0 3px rgba(215,166,60,.14);
+}
+.tab-nuevo span{
+  background:linear-gradient(145deg,#0a7558,#034b3a);
+  box-shadow:
+    0 0 0 4px var(--fondo),
+    0 10px 26px rgba(3,75,58,.30),
+    inset 0 0 0 1px rgba(255,220,125,.25);
+}
+.tab-nuevo svg{
+  stroke:#ffe09a;
+}
+.primario,
+.captura button{
+  background:linear-gradient(145deg,#0a6b50,#034b3a);
+  color:#fff7df;
+  box-shadow:inset 0 0 0 1px rgba(255,218,119,.18);
+}
+.filtro.activo,.chip.activo{
+  background:#075b45;
+  border-color:#075b45;
+  color:#fff7df;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="claro"]):not([data-theme="oscuro"]) .nombre-app,
+  :root:not([data-theme="claro"]):not([data-theme="oscuro"]) .encabezado h1,
+  :root:not([data-theme="claro"]):not([data-theme="oscuro"]) .titulo-dia h2{
+    color:#ffe09a;
+  }
+}
+:root[data-theme="oscuro"] .nombre-app,
+:root[data-theme="oscuro"] .encabezado h1,
+:root[data-theme="oscuro"] .titulo-dia h2{
+  color:#ffe09a;
 }
