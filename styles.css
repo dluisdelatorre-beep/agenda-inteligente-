@@ -1629,3 +1629,24 @@ body::before{
 @media(prefers-reduced-transparency:reduce){
   body::before{opacity:.42}.hoy-panel,.hoy-lista,.resumen,.captura,.item,.mes,.busqueda,.bloque,.stats-tiles>*,.tabbar,.hoja,.hoja-cuerpo{backdrop-filter:none;-webkit-backdrop-filter:none}
 }
+
+
+/* ===== HOTFIX v26 · legibilidad y superficies sólidas ===== */
+body, body::before { background-image:none !important; }
+body { background:#f4efe3 !important; }
+.hoy-panel,.hoy-lista,.bloque,.item,.captura,.mes,.stats-tiles>*,.contacto,.tabbar,.hoja,.hoja-cuerpo {
+  background:#fffaf0 !important;
+  backdrop-filter:none !important;
+  -webkit-backdrop-filter:none !important;
+  border-color:#dfd1ad !important;
+}
+.busqueda { background:transparent !important; backdrop-filter:none !important; -webkit-backdrop-filter:none !important; box-shadow:none !important; border:0 !important; }
+.busqueda input,.captura input,.campos-contacto input,.campos-contacto textarea { background:#fffaf0 !important; }
+.resumen { background:#075b45 !important; backdrop-filter:none !important; -webkit-backdrop-filter:none !important; }
+.hoja::backdrop,.hoja-abajo::backdrop { background:rgba(3,35,28,.58) !important; backdrop-filter:none !important; }
+.asistente-btn.avatar-en-dialogo { display:none !important; }
+.hoja-abajo .asis-avatar { display:block !important; }
+@media(max-width:767px){
+  .hoja-cuerpo { max-height:calc(100dvh - 18px); overflow:auto; overscroll-behavior:contain; }
+  .campos-contacto { padding-bottom:calc(20px + env(safe-area-inset-bottom)); }
+}
