@@ -73,7 +73,11 @@
     boton.setAttribute('aria-label', 'Abrir tu asistente');
     const escena = document.createElement('span');
     escena.className = 'avatar-escena';
-    boton.appendChild(escena);
+    const saludo = document.createElement('span');
+    saludo.className = 'avatar-saludo';
+    saludo.textContent = 'Hola 👋 Estoy contigo.';
+    saludo.setAttribute('aria-hidden', 'true');
+    boton.append(escena, saludo);
     dibujante.montar(escena);
     // Respuesta táctil inmediata (también en toques muy rápidos, donde :active casi no se ve)
     boton.addEventListener('pointerdown', () => {
@@ -87,6 +91,7 @@
       if (e.animationName === 'avatar-pulso') boton.classList.remove('pulsando');
       if (e.animationName === 'avatar-parpadeo') boton.classList.remove('parpadea');
       if (e.animationName === 'avatar-inclina' || e.animationName === 'avatar-asiente') boton.classList.remove('inclina', 'asiente');
+      if (e.animationName === 'avatar-saluda') boton.classList.remove('saluda');
     });
     boton.addEventListener('click', () => alTocar && alTocar());
     if ('IntersectionObserver' in window) {
@@ -182,7 +187,11 @@
       // Saludo: una sola vez por entrada a la app (no al cambiar de pestaña)
       if (saludado || !visible || document.hidden) return false;
       saludado = true;
-      if (!sinMovimiento) { gesto('escucha'); cabeza('asiente'); setTimeout(parpadear, 200); }
+      if (!sinMovimiento) {
+        gesto('saluda');
+        setTimeout(() => cabeza('asiente'), 180);
+        setTimeout(parpadear, 420);
+      }
     } else if (nombre === 'return') {
       if (sinMovimiento || !visible || ahora - ultimoRegreso < REGRESO_ENFRIA) return false;
       ultimoRegreso = ahora;
