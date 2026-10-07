@@ -61,6 +61,7 @@
   // abierto al capturar) o la app está en segundo plano, el pulso espera a que vuelva a verse.
   let visible = false;
   let pulsoPendiente = false;
+  let saludoPendiente = false;
   let observador = null;
 
   function crear(alTocar) {
@@ -98,6 +99,10 @@
       observador = new IntersectionObserver((entradas) => {
         visible = entradas.some((e) => e.isIntersecting && e.intersectionRatio >= 0.6);
         if (visible && pulsoPendiente) setTimeout(pulso, 250);
+        if (visible && saludoPendiente) {
+          saludoPendiente = false;
+          setTimeout(() => reaccionar('greeting'), 140);
+        }
       }, { threshold: [0, 0.6, 1] });
       observador.observe(boton);
     } else visible = true;
@@ -185,7 +190,8 @@
     if (prio && ahora < enCursoHasta && prio < enCursoPrio) return false; // no pisar una reacción más importante
     if (nombre === 'greeting') {
       // Saludo: una sola vez por entrada a la app (no al cambiar de pestaña)
-      if (saludado || !visible || document.hidden) return false;
+      if (saludado || document.hidden) return false;
+      if (!visible) { saludoPendiente = true; return false; }
       saludado = true;
       if (!sinMovimiento) {
         gesto('saluda');
