@@ -1574,3 +1574,58 @@ body::before{
     animation:none!important;filter:none!important;clip-path:none!important;
   }
 }
+
+
+/* ===== Agenda v25 · piel Higgsfield + actuación contextual ===== */
+:root{
+  --hf-esmeralda:#075b45;--hf-esmeralda-profunda:#043c31;--hf-oro:#d7a63c;--hf-luz:#f3d58a;
+  --hf-borde:rgba(243,213,138,.26);--hf-sombra:0 26px 70px rgba(3,35,28,.25),inset 0 1px 0 rgba(255,255,255,.58),inset 0 -1px 0 rgba(215,166,60,.12);
+}
+html{background:var(--hf-esmeralda-profunda)}
+body{position:relative;isolation:isolate;background:var(--hf-esmeralda-profunda)}
+body::before{
+  content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
+  background-image:linear-gradient(180deg,rgba(4,60,49,.18),rgba(4,60,49,.48)),url("carga/piel-higgsfield-v24.png");
+  background-size:cover;background-position:center top;background-repeat:no-repeat;filter:saturate(1.04) contrast(1.02);
+}
+.app{position:relative;z-index:1;transform-style:preserve-3d;perspective:1200px}
+.app.app-preentrada{opacity:0;transform:perspective(1100px) translateZ(-150px) scale(.91);filter:blur(12px)}
+.app.entrada-inicial{animation:hf-entrada-app .82s cubic-bezier(.16,.78,.22,1) both}
+@keyframes hf-entrada-app{0%{opacity:.08;transform:perspective(1100px) translateZ(-150px) scale(.91);filter:blur(12px)}55%{opacity:.84;filter:blur(2px)}100%{opacity:1;transform:perspective(1100px) translateZ(0) scale(1);filter:blur(0)}}
+
+.hoy-panel,.hoy-lista,.resumen,.captura,.item,.mes,.busqueda,.bloque,.stats-tiles>*,.tabbar,.hoja,.hoja-cuerpo{
+  border:1px solid var(--hf-borde);box-shadow:var(--hf-sombra);
+  backdrop-filter:blur(24px) saturate(155%) contrast(1.03);-webkit-backdrop-filter:blur(24px) saturate(155%) contrast(1.03);
+}
+.hoy-panel,.hoy-lista,.mes,.busqueda,.bloque,.stats-tiles>*{background:linear-gradient(145deg,rgba(255,255,255,.84),rgba(246,241,222,.67) 54%,rgba(214,166,60,.10));border-radius:24px}
+.hoy-panel{padding:18px;margin-bottom:14px}.hoy-lista{padding:14px}
+.resumen{background:radial-gradient(120% 90% at 12% 0%,rgba(243,213,138,.28),transparent 48%),linear-gradient(145deg,rgba(7,91,69,.95),rgba(4,60,49,.90))}
+.captura,.item{background:linear-gradient(145deg,rgba(255,255,255,.91),rgba(248,245,232,.76))}
+.captura input,.busqueda input,.campos-contacto input,.campos-contacto textarea{background:rgba(255,255,255,.70);box-shadow:inset 0 2px 8px rgba(4,60,49,.08),0 1px 0 rgba(255,255,255,.72)}
+.tabbar{background:linear-gradient(145deg,rgba(255,255,255,.83),rgba(243,238,218,.70))}
+.hoja,.hoja-cuerpo{background:radial-gradient(120% 100% at 18% 0%,rgba(243,213,138,.20),transparent 46%),linear-gradient(150deg,rgba(255,255,255,.96),rgba(244,239,218,.91))}
+
+.vista.entra-adelante,.vista.entra-atras{animation:hf-vista-profundidad .48s cubic-bezier(.16,.78,.22,1)}
+@keyframes hf-vista-profundidad{from{opacity:0;transform:perspective(1000px) translateZ(-105px) translateY(10px) scale(.94);filter:blur(9px)}62%{opacity:.92;filter:blur(1.5px)}to{opacity:1;transform:perspective(1000px) translateZ(0) translateY(0) scale(1);filter:blur(0)}}
+
+.hoja[open]{animation:hf-dialogo-materializa .42s cubic-bezier(.18,.78,.22,1) both}
+.hoja::backdrop,.hoja-abajo::backdrop{animation:hf-velo-materializa .42s ease-out both}
+.hoja-abajo[open] .hoja-cuerpo{animation:hf-hoja-materializa .46s cubic-bezier(.16,.78,.22,1) both}
+@keyframes hf-dialogo-materializa{0%{opacity:0;transform:perspective(900px) translateZ(-100px) translateY(8px) scale(.92);filter:blur(16px) saturate(.7)}52%{opacity:.72;filter:blur(5px) saturate(.92)}100%{opacity:1;transform:perspective(900px) translateZ(0) translateY(0) scale(1);filter:blur(0) saturate(1)}}
+@keyframes hf-hoja-materializa{0%{opacity:0;transform:perspective(900px) translateY(34px) translateZ(-90px) scale(.95);filter:blur(15px)}58%{opacity:.78;filter:blur(4px)}100%{opacity:1;transform:perspective(900px) translateY(0) translateZ(0) scale(1);filter:blur(0)}}
+@keyframes hf-velo-materializa{from{background:rgba(3,35,28,0);backdrop-filter:blur(0)}to{background:rgba(3,35,28,.46);backdrop-filter:blur(4px)}}
+
+.asistente-btn .avatar-reaccion{transition:transform .5s cubic-bezier(.2,.7,.25,1)}
+.asistente-btn[data-mirada="frente"] .avatar-reaccion{transform:translate(0,0) rotate(0)}
+.asistente-btn[data-mirada="contenido"] .avatar-reaccion{transform:translate(2px,3px) rotate(3deg)}
+.asistente-btn[data-mirada="pendientes"] .avatar-reaccion{transform:translate(1px,4px) rotate(2deg)}
+.asistente-btn[data-mirada="panel"] .avatar-reaccion{transform:translate(5px,5px) rotate(5deg) scale(.99)}
+.hoja-abajo[open] .asis-avatar{transform-origin:50% 88%;animation:hf-avatar-atiende .72s cubic-bezier(.2,.7,.25,1) both}
+@keyframes hf-avatar-atiende{0%{transform:translateY(0) rotate(0)}42%{transform:translateY(2px) rotate(5deg)}100%{transform:translateY(1px) rotate(3deg)}}
+
+@media(prefers-reduced-motion:reduce){
+  .app.app-preentrada{opacity:1;transform:none;filter:none}.app.entrada-inicial,.vista.entra-adelante,.vista.entra-atras,.hoja[open],.hoja-abajo[open] .hoja-cuerpo,.hoja-abajo[open] .asis-avatar{animation:none}.asistente-btn .avatar-reaccion{transition:none}
+}
+@media(prefers-reduced-transparency:reduce){
+  body::before{opacity:.42}.hoy-panel,.hoy-lista,.resumen,.captura,.item,.mes,.busqueda,.bloque,.stats-tiles>*,.tabbar,.hoja,.hoja-cuerpo{backdrop-filter:none;-webkit-backdrop-filter:none}
+}
