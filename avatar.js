@@ -116,6 +116,7 @@
       salioEn = 0;
     });
     programarParpadeo();
+    instalarAcompanamientoDialogos();
     return boton;
   }
 
@@ -218,6 +219,39 @@
     boton.dataset.reaccion = nombre;
     dibujante.estado(nombre, boton);
     return true;
+  }
+
+  function instalarAcompanamientoDialogos() {
+    if (!boton || boton.dataset.dialogosListos === '1') return;
+    boton.dataset.dialogosListos = '1';
+    const origenPadre = boton.parentNode;
+    const origenSiguiente = boton.nextSibling;
+
+    const devolver = () => {
+      if (!origenPadre || boton.parentNode === origenPadre) return;
+      boton.classList.remove('avatar-en-dialogo', 'mira-tarea');
+      if (origenSiguiente && origenSiguiente.parentNode === origenPadre) origenPadre.insertBefore(boton, origenSiguiente);
+      else origenPadre.appendChild(boton);
+    };
+
+    const acompanar = (dlg) => {
+      const host = dlg.querySelector('.hoja-cuerpo, form') || dlg;
+      if (boton.parentNode !== host) host.appendChild(boton);
+      boton.classList.add('avatar-en-dialogo', 'mira-tarea');
+      boton.classList.remove('saluda', 'inclina', 'asiente');
+      void boton.offsetWidth;
+      setTimeout(parpadear, 320);
+    };
+
+    const revisar = () => {
+      const abiertos = [...document.querySelectorAll('dialog[open]')];
+      const dlg = abiertos[abiertos.length - 1];
+      if (dlg) acompanar(dlg); else devolver();
+    };
+
+    const mo = new MutationObserver(revisar);
+    document.querySelectorAll('dialog').forEach((dlg) => mo.observe(dlg, { attributes:true, attributeFilter:['open'] }));
+    revisar();
   }
 
   // Fase 2: cambiar la imagen por un avatar animado sin tocar la app.
