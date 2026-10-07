@@ -23,7 +23,7 @@
     .splash[hidden]{display:none}
     @media(prefers-reduced-motion:reduce){.splash-firma{animation:none}}
   </style>
-  <link rel="stylesheet" href="styles.css?v=25">
+  <link rel="stylesheet" href="styles.css?v=26">
   <script>
     // Aplica tema, acento, densidad y texto antes de pintar, para que no parpadee.
     try {
@@ -82,7 +82,7 @@
 
       <form class="captura" id="captura" autocomplete="off">
         <label for="entrada" class="oculto">Nuevo pendiente</label>
-        <input id="entrada" type="text" placeholder="Dime qué no quieres que se te pase…" enterkeyhint="done">
+        <input id="entrada" type="text" placeholder="Cuéntame tus planes." enterkeyhint="done">
         <div class="entendido" id="entendido" hidden></div>
         <button type="submit" id="guardar" disabled>Guardar</button>
       </form>
@@ -100,7 +100,7 @@
         <button id="permiso" class="permiso" hidden>Activar avisos</button>
         <p id="estadoAvisos" class="estado-avisos"></p>
         <p>Toca un pendiente para editarlo.</p>
-        <p class="version" id="version">Versión 25</p>
+        <p class="version" id="version">Versión 26</p>
       </footer>
       </div>
     </section>
@@ -330,7 +330,7 @@
         <button type="button" data-sec="despues"><span class="ic">⏰</span>Recordarme después</button>
       </div>
       <section class="asis-contenido" id="asisContenido" aria-live="polite"></section>
-      <button type="button" class="asis-preguntar" disabled>💬 Preguntarle algo <small>Próximamente</small></button>
+      
     </div>
   </dialog>
 
