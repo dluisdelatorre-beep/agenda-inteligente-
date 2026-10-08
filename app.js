@@ -841,25 +841,10 @@
     const direccion = vistaActual && vista !== vistaActual ? (ORDEN[vista] > ORDEN[vistaActual] ? 'entra-adelante' : 'entra-atras') : null;
     vistaActual = vista;
     if (window.avatarAsistente && avatarAsistente.mirar) avatarAsistente.mirar(vista === 'hoy' ? 'frente' : 'contenido');
-    // Al regresar a Hoy desde otra sección: la asistente reconoce el regreso con un gesto mínimo (no repite el saludo)
-    if (vista === 'hoy' && direccion && window.avatarAsistente) setTimeout(() => avatarAsistente.reaccionar('reconoce'), 260);
-    // La vista que sale "pierde opacidad" con una copia visual (sin ids, inerte, debajo de la nueva) que se desvanece
-    // en ~200 ms. La vista real se oculta al instante: la app nunca tiene dos vistas activas y responde de inmediato.
+    // Cambiar de sección no obliga al Avatar a parpadear; conserva su respiración natural.
+    // Cambio continuo: no clonar vistas ni ocultar la nueva con opacidad cero.
+    // La copia-fantasma de v29 quedaba detrás de la app y producía un destello.
     document.querySelectorAll('.vista-fantasma').forEach((f) => f.remove());
-    const saliente = direccion && !matchMedia('(prefers-reduced-motion: reduce)').matches
-      ? document.querySelector('.vista:not([hidden])') : null;
-    if (saliente) {
-      const r = saliente.getBoundingClientRect();
-      const fantasma = saliente.cloneNode(true);
-      fantasma.querySelectorAll('[id]').forEach((n) => n.removeAttribute('id'));
-      fantasma.removeAttribute('id');
-      fantasma.className = 'vista-fantasma';
-      fantasma.setAttribute('aria-hidden', 'true'); fantasma.inert = true;
-      Object.assign(fantasma.style, { left: r.left + 'px', top: r.top + 'px', width: r.width + 'px' });
-      document.body.appendChild(fantasma);
-      fantasma.addEventListener('animationend', () => fantasma.remove(), { once: true });
-      setTimeout(() => fantasma.remove(), 600); // respaldo
-    }
     document.querySelectorAll('.vista').forEach((v) => {
       v.hidden = v.dataset.vista !== vista; // la anterior se oculta al instante: nunca hay dos encimadas
       v.classList.remove('entra-adelante', 'entra-atras');
@@ -868,7 +853,13 @@
       const nueva = document.querySelector(`.vista[data-vista="${vista}"]`);
       void nueva.offsetWidth;
       nueva.classList.add(direccion);
-      nueva.addEventListener('animationend', () => nueva.classList.remove('entra-adelante', 'entra-atras'), { once: true });
+      // Ignorar animaciones de hijos: antes podían cancelar la entrada y causar un segundo destello.
+      const finEntrada = (e) => {
+        if (e.target !== nueva) return;
+        nueva.classList.remove('entra-adelante', 'entra-atras');
+        nueva.removeEventListener('animationend', finEntrada);
+      };
+      nueva.addEventListener('animationend', finEntrada);
     }
     document.querySelectorAll('.tab').forEach((t) => {
       const activo = t.dataset.ir === vista;
