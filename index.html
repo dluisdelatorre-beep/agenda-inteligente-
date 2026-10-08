@@ -17,13 +17,14 @@
   <link rel="icon" href="icons/icon-192.png" type="image/png" sizes="192x192">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <!-- Fuentes sin bloquear el primer pintado: el splash aparece aunque la red esté lenta -->
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
   <style>
     /* Splash: JPG original aprobado (1000269581.jpg) a pantalla completa, sin deformar.
        Capas sacadas de la misma foto (herramientas/capas-splash.py): fondo sin letras + letras JS recortadas.
        En reposo las dos capas reproducen la foto original; solo las letras se mueven. */
     .splash{position:fixed;inset:0;z-index:9999;overflow:hidden;background:#021a09;cursor:pointer;
-      transition:opacity .42s cubic-bezier(.4,0,1,1)}
+      transition:opacity .62s cubic-bezier(.4,0,.2,1)}
     .splash-ambiente{position:absolute;inset:-6%;background:url(carga/1000269581.jpg) center/cover no-repeat;filter:blur(38px) brightness(.55);transform:scale(1.1)}
     .splash-lienzo{position:absolute;left:50%;top:50%;width:max(100vw,56.25vh);height:max(100vh,177.78vw);transform:translate(-50%,-50%);
       background:url(carga/1000269581.jpg) center/100% 100% no-repeat}
@@ -35,20 +36,16 @@
     }
     .splash-lienzo img{position:absolute;display:block;user-select:none;-webkit-user-drag:none}
     .splash-fondo{inset:0;width:100%;height:100%}
-    .splash-letras{left:24.333%;top:36.75%;width:49.778%;height:21.75%;transform-origin:50% 50%;will-change:transform,filter;
-      animation:js-llega 1.35s .1s cubic-bezier(.16,.84,.24,1) both,js-respira 2.2s 1.45s ease-in-out infinite}
-    .splash-brillo{position:absolute;left:24.333%;top:36.75%;width:49.778%;height:21.75%;pointer-events:none;mix-blend-mode:screen;
-      -webkit-mask:url(carga/splash-js-letras.png) center/100% 100% no-repeat;mask:url(carga/splash-js-letras.png) center/100% 100% no-repeat;
-      background:linear-gradient(105deg,transparent 30%,rgba(210,255,225,.85) 48%,transparent 66%) -160% 0/60% 100% no-repeat;
-      animation:js-destello 1.1s .75s cubic-bezier(.45,.05,.3,1) both}
-    @keyframes js-llega{0%{transform:scale(1.11) translateY(-6px);filter:brightness(1.6) blur(3px) drop-shadow(0 0 26px rgba(90,255,140,.8))}
-      55%{transform:scale(.995);filter:brightness(1.12) blur(0) drop-shadow(0 0 12px rgba(90,255,140,.5))}
-      100%{transform:none;filter:brightness(1) blur(0) drop-shadow(0 0 6px rgba(90,255,140,.35))}}
-    @keyframes js-respira{0%,100%{filter:brightness(1) drop-shadow(0 0 6px rgba(90,255,140,.35))}50%{filter:brightness(1.08) drop-shadow(0 0 16px rgba(90,255,140,.55))}}
-    @keyframes js-destello{to{background-position:260% 0}}
+    /* Letras JS: entrada 500 ms y luego firma flotante (rotación muy leve entre −1.8° y +1.8°) con un pulso
+       casi imperceptible del resplandor. Solo se mueve la capa de las letras; la foto y sus arcos quedan fijos. */
+    .splash-letras{left:24.333%;top:36.75%;width:49.778%;height:21.75%;transform-origin:50% 55%;will-change:transform,filter;
+      animation:js-llega .5s .05s cubic-bezier(.2,.75,.25,1) both,js-flota 2.6s .55s cubic-bezier(.45,.05,.55,.95) infinite alternate,js-pulso 2.6s .55s ease-in-out infinite}
+    @keyframes js-llega{from{transform:scale(1.045);filter:brightness(1.3) blur(1.5px) drop-shadow(0 0 14px rgba(90,255,140,.6))}
+      to{transform:rotate(-1.8deg);filter:brightness(1) blur(0) drop-shadow(0 0 6px rgba(90,255,140,.32))}}
+    @keyframes js-flota{from{transform:rotate(-1.8deg) translateY(0)}to{transform:rotate(1.8deg) translateY(-2px)}}
+    @keyframes js-pulso{0%,100%{filter:brightness(1) drop-shadow(0 0 6px rgba(90,255,140,.32))}50%{filter:brightness(1.04) drop-shadow(0 0 9px rgba(90,255,140,.42))}}
     .splash.saliendo{opacity:0;pointer-events:none}
-    .splash.saliendo .splash-letras{animation:none;transform:scale(1.07);filter:brightness(1.2) drop-shadow(0 0 22px rgba(90,255,140,.6));transition:transform .42s cubic-bezier(.4,0,.2,1),filter .42s}
-    @media(prefers-reduced-motion:reduce){.splash-letras,.splash-brillo{animation:none}.splash-brillo{display:none}.splash{transition:none}}
+    @media(prefers-reduced-motion:reduce){.splash-letras{animation:none}.splash{transition:opacity .2s}}
     .splash[hidden]{display:none}
     /* Respaldo sin JavaScript (o si el JS falla): el CSS retira el splash y muestra Hoy solo a los 3 s */
     .splash{animation:splash-respaldo .4s 3s forwards}
@@ -56,7 +53,7 @@
     .app.app-preentrada{animation:app-respaldo .5s 3.2s forwards}
     @keyframes app-respaldo{to{opacity:1;transform:none;filter:none}}
   </style>
-  <link rel="stylesheet" href="styles.css?v=28">
+  <link rel="stylesheet" href="styles.css?v=29">
   <script>
     // Aplica tema, acento, densidad y texto antes de pintar, para que no parpadee.
     try {
@@ -76,7 +73,6 @@
     <div class="splash-lienzo">
       <img class="splash-fondo" src="carga/splash-js-fondo.jpg" alt="" width="900" height="1600" decoding="async" fetchpriority="high">
       <img class="splash-letras" src="carga/splash-js-letras.png" alt="" width="448" height="348" decoding="async" fetchpriority="high">
-      <span class="splash-brillo"></span>
     </div>
   </div>
   <noscript>
@@ -138,7 +134,7 @@
         <button id="permiso" class="permiso" hidden>Activar avisos</button>
         <p id="estadoAvisos" class="estado-avisos"></p>
         <p>Toca un pendiente para editarlo.</p>
-        <p class="version" id="version">Versión 28</p>
+        <p class="version" id="version">Versión 29</p>
       </footer>
       </div>
     </section>
@@ -507,14 +503,14 @@
     </form>
   </dialog>
 
-  <script src="parser.js?v=21"></script>
-  <script src="almacen.js?v=21"></script>
-  <script src="ajustes.js?v=21"></script>
-  <script src="acciones.js?v=21"></script>
-  <script src="categorias.js?v=21"></script>
-  <script src="asistente.js?v=21"></script>
-  <script src="avatar.js?v=25"></script>
-  <script src="contactos.js?v=21"></script>
-  <script src="app.js?v=25"></script>
+  <script src="parser.js?v=29"></script>
+  <script src="almacen.js?v=29"></script>
+  <script src="ajustes.js?v=29"></script>
+  <script src="acciones.js?v=29"></script>
+  <script src="categorias.js?v=29"></script>
+  <script src="asistente.js?v=29"></script>
+  <script src="avatar.js?v=29"></script>
+  <script src="contactos.js?v=29"></script>
+  <script src="app.js?v=29"></script>
 </body>
 </html>

@@ -123,7 +123,7 @@ with sync_playwright() as p:
     pg.screenshot(path="/tmp/claude-0/-home-claude/664b7c3d-405b-5f8f-9031-07e69fa0cf95/scratchpad/s-hoy-oscuro.png")
 
     tab(pg, "ajustes")
-    pg.click("label:has(input[name=accentColor][value=morado])"); pg.wait_for_timeout(150)
+    pg.click("label:has(input[name=accentColor][value=morado])"); pg.wait_for_timeout(350)  # deja terminar la transición de color
     MORADO = "rgb(185, 162, 236)"  # tono oscuro del morado
     colores = {"ajustes: pestaña": pg.evaluate("getComputedStyle(document.querySelector('.tab.activo')).color"),
                "ajustes: interruptor": pg.evaluate("getComputedStyle(document.getElementById('ajSonido')).backgroundColor")}

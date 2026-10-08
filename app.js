@@ -211,6 +211,7 @@
     const vencido = !p.hecho && p.cuando && new Date(p.cuando) < ahora;
     div.className = 'item' + (p.hecho ? ' hecho' : '') + (vencido ? ' vencido' : '') + (p.priority === 'alta' ? ' prio-alta' : '') + (p.id === recienCreado ? ' recien' : '');
     if (p.id === recienCreado) div.addEventListener('animationend', () => { div.classList.remove('recien'); recienCreado = null; }, { once: true });
+    div.dataset.id = p.id;
 
     const check = boton('check', '', p.hecho ? 'Marcar como pendiente' : 'Marcar como hecho', async () => {
       if (check.disabled) return;
@@ -221,8 +222,12 @@
       if (p.hecho) { ajustes.tocar('hecho'); avatarAsistente.reaccionar('success'); }
       await guardar(); // primero se guarda: la animación nunca retrasa ni arriesga el dato
       almacen.sincronizar(p);
+      if (p.hecho && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        check.classList.add('confirmando'); // la palomita se dibuja antes de que la tarjeta se despida
+        await new Promise((ok) => setTimeout(ok, 170));
+      }
       await despedirTarjeta(div);
-      pintar();
+      pintarReacomodando();
     });
 
     const cuerpo = document.createElement('button');
@@ -276,7 +281,9 @@
     }
     zona.appendChild(boton('borrar', '×', 'Borrar', async () => {
       pendientes = pendientes.filter((x) => x.id !== p.id);
-      await guardar(); pintar();
+      await guardar(); // primero se guarda
+      await despedirTarjeta(div);
+      pintarReacomodando();
       almacen.sincronizar({ ...p, hecho: true }); // en el servidor, borrar = ya no avisar
       avisar('Pendiente borrado');
     }));
@@ -480,6 +487,22 @@
   }
 
   // Pinta Hoy siempre (es la base) y además la pantalla que esté a la vista.
+  // Repinta y desliza suavemente las tarjetas que cambiaron de lugar (técnica FLIP: solo transform, sin saltos).
+  function pintarReacomodando() {
+    const quieto = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const sel = '.vista:not([hidden]) .item[data-id]';
+    const antes = quieto ? null : new Map([...document.querySelectorAll(sel)].map((el) => [el.dataset.id, el.getBoundingClientRect().top]));
+    pintar();
+    if (!antes || typeof Element.prototype.animate !== 'function') return;
+    document.querySelectorAll(sel).forEach((el) => {
+      const y0 = antes.get(el.dataset.id);
+      if (y0 === undefined) return;
+      const dy = y0 - el.getBoundingClientRect().top;
+      if (Math.abs(dy) < 1) return;
+      el.animate([{ transform: `translateY(${dy}px)` }, { transform: 'none' }], { duration: 280, easing: 'cubic-bezier(.2,.8,.2,1)' });
+    });
+  }
+
   function pintar() {
     pintarEncabezado(); pintarResumen(); pintarLista();
     if (vistaActual === 'calendario') pintarCalendario();
@@ -818,6 +841,25 @@
     const direccion = vistaActual && vista !== vistaActual ? (ORDEN[vista] > ORDEN[vistaActual] ? 'entra-adelante' : 'entra-atras') : null;
     vistaActual = vista;
     if (window.avatarAsistente && avatarAsistente.mirar) avatarAsistente.mirar(vista === 'hoy' ? 'frente' : 'contenido');
+    // Al regresar a Hoy desde otra sección: la asistente reconoce el regreso con un gesto mínimo (no repite el saludo)
+    if (vista === 'hoy' && direccion && window.avatarAsistente) setTimeout(() => avatarAsistente.reaccionar('reconoce'), 260);
+    // La vista que sale "pierde opacidad" con una copia visual (sin ids, inerte, debajo de la nueva) que se desvanece
+    // en ~200 ms. La vista real se oculta al instante: la app nunca tiene dos vistas activas y responde de inmediato.
+    document.querySelectorAll('.vista-fantasma').forEach((f) => f.remove());
+    const saliente = direccion && !matchMedia('(prefers-reduced-motion: reduce)').matches
+      ? document.querySelector('.vista:not([hidden])') : null;
+    if (saliente) {
+      const r = saliente.getBoundingClientRect();
+      const fantasma = saliente.cloneNode(true);
+      fantasma.querySelectorAll('[id]').forEach((n) => n.removeAttribute('id'));
+      fantasma.removeAttribute('id');
+      fantasma.className = 'vista-fantasma';
+      fantasma.setAttribute('aria-hidden', 'true'); fantasma.inert = true;
+      Object.assign(fantasma.style, { left: r.left + 'px', top: r.top + 'px', width: r.width + 'px' });
+      document.body.appendChild(fantasma);
+      fantasma.addEventListener('animationend', () => fantasma.remove(), { once: true });
+      setTimeout(() => fantasma.remove(), 600); // respaldo
+    }
     document.querySelectorAll('.vista').forEach((v) => {
       v.hidden = v.dataset.vista !== vista; // la anterior se oculta al instante: nunca hay dos encimadas
       v.classList.remove('entra-adelante', 'entra-atras');
@@ -835,8 +877,32 @@
     });
     window.scrollTo(0, 0);
     if (vista === 'ajustes') pintarAjustes(); else pintar();
-    if (vista === 'estadisticas') pintarEstadisticas();
+    if (vista === 'estadisticas') { pintarEstadisticas(); animarSemana(); }
     if (vista === 'contactos') pintarContactos();
+  }
+
+  // Tu semana: al entrar, las tarjetas llegan escalonadas, los contadores suben hasta su valor y las barras se revelan.
+  // Solo al entrar a la sección (al actualizar datos estando dentro no se repite: sin parpadeos). No cambia ningún cálculo.
+  function animarSemana() {
+    const v = $('vista-estadisticas');
+    if (!v || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    v.classList.remove('semana-entra'); void v.offsetWidth; v.classList.add('semana-entra');
+    setTimeout(() => v.classList.remove('semana-entra'), 1400);
+    v.querySelectorAll('.col-dia').forEach((c, i) => c.style.setProperty('--i', i));
+    v.querySelectorAll('.fila-cat').forEach((c, i) => c.style.setProperty('--i', i));
+    v.querySelectorAll('.tile strong, .prio-tile strong').forEach((n) => {
+      const final = n.textContent;
+      const m = final.match(/^(\d+)(.*)$/s);
+      if (!m || +m[1] === 0) return;
+      const meta = +m[1], resto = m[2], t0 = performance.now(), dur = 650;
+      const paso = (t) => {
+        if (!n.isConnected) return;
+        const k = Math.min(1, (t - t0) / dur), e = 1 - Math.pow(1 - k, 3);
+        n.textContent = k < 1 ? Math.round(meta * e) + resto : final;
+        if (k < 1) requestAnimationFrame(paso);
+      };
+      n.textContent = '0' + resto; requestAnimationFrame(paso);
+    });
   }
 
   function navegar(vista) {
@@ -1921,30 +1987,32 @@
 
   // ---- Splash de apertura (firma JS) ----
   // Ritual de apertura de marca: debe sentirse, no parpadear.
-  // Permanece visible al menos 1.7 s y pasa a Hoy antes de ~2.5 s (regla de la casa: máximo 3 s).
+  // Visible al menos 1.5 s desde que corre el script; se desvanece en 0.62 s mientras Hoy emerge (total < 3 s).
   const splash = $('splash');
   const inicioSplash = performance.now();
   let inicioSplashSaltado = false;
   const movimientoReducido = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const minimoSplash = 1700;
-  const salidaSplash = movimientoReducido ? 0 : 420;
+  const minimoSplash = 1500;
+  const salidaSplash = movimientoReducido ? 0 : 620; // el splash se desvanece mientras Hoy ya viene emergiendo
   function quitarSplash() {
     if (!splash || splash.hidden || splash.classList.contains('saliendo')) return;
     const espera = inicioSplashSaltado ? 0 : Math.max(0, minimoSplash - (performance.now() - inicioSplash));
     setTimeout(() => {
       if (!splash || splash.hidden || splash.classList.contains('saliendo')) return;
+      // Transición coordinada: Hoy empieza a acercarse EN EL MISMO instante en que el splash empieza a desvanecerse
+      // (sin hueco vacío entre los dos).
+      const appRaiz = document.querySelector('.app');
+      if (appRaiz) {
+        appRaiz.classList.remove('app-preentrada');
+        appRaiz.classList.add('entrada-inicial');
+        setTimeout(() => appRaiz.classList.remove('entrada-inicial'), 1300);
+      }
       splash.classList.add('saliendo');
+      if (window.avatarAsistente && avatarAsistente.mirar) avatarAsistente.mirar('frente');
+      setTimeout(() => avatarAsistente.reaccionar('greeting'), movimientoReducido ? 0 : 700);
       setTimeout(() => {
         splash.hidden = true;
         const barra = document.querySelector('meta[name="theme-color"]'); if (barra) barra.content = '#075b45'; // barra del sistema vuelve al esmeralda de la app
-        const appRaiz = document.querySelector('.app');
-        if (appRaiz) {
-          appRaiz.classList.remove('app-preentrada');
-          appRaiz.classList.add('entrada-inicial');
-          appRaiz.addEventListener('animationend', () => appRaiz.classList.remove('entrada-inicial'), { once: true });
-        }
-        if (window.avatarAsistente && avatarAsistente.mirar) avatarAsistente.mirar('frente');
-        setTimeout(() => avatarAsistente.reaccionar('greeting'), movimientoReducido ? 0 : 180);
       }, salidaSplash);
     }, espera);
   }

@@ -89,6 +89,7 @@ with sync_playwright() as p:
             pg.reload(); pg.wait_for_selector("#resumen h2")
 
         pg.click("#verEstadisticas"); pg.wait_for_selector("#vista-estadisticas:not([hidden])")
+        pg.wait_for_timeout(900)  # los contadores de Tu semana suben hasta su valor (~0.65 s) al entrar
         assert "#estadisticas" in pg.url
         tiles = pg.inner_text("#statsTiles")
         e = pg.evaluate("__estadisticas(JSON.parse(JSON.stringify([])))")  # vacío no truena

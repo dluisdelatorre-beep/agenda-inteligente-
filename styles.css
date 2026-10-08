@@ -840,22 +840,7 @@ body {
 .elegir-opcion { display: grid; text-align: left; gap: 2px; border: 1px solid var(--linea); border-radius: 12px; background: var(--fondo); color: var(--tinta); padding: 10px 12px; font: inherit; cursor: pointer; min-height: 48px; }
 .elegir-opcion small { color: var(--suave); }
 
-/* =========================================================
-   Splash de apertura: firma JS (solo al abrir)
-   Microanimación breve: aparece la firma y se traza la línea; luego se desvanece hacia Hoy.
-   ========================================================= */
-.firma-texto { font: 600 78px Fraunces, Georgia, serif; fill: url(#oroFirma); letter-spacing: 2px; }
-.firma-trazo { fill: none; stroke: url(#oroFirma); stroke-width: 3; stroke-linecap: round; stroke-dasharray: 130; stroke-dashoffset: 130; }
-.splash .firma-texto { animation: firma-entra .68s var(--curva) both; }
-.splash .firma-trazo { animation: firma-traza .92s .34s var(--curva) forwards; }
-.splash { transition: opacity .42s var(--curva-salida); }
-.splash.saliendo { opacity: 0; pointer-events: none; }
-@keyframes firma-entra { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
-@keyframes firma-traza { to { stroke-dashoffset: 0; } }
-@media (prefers-reduced-motion: reduce) {
-  .splash * { animation: none !important; } .splash { transition: none !important; }
-  .firma-trazo { stroke-dashoffset: 0; }
-}
+/* Splash de apertura: sus estilos viven en el <style> de index.html para pintarse antes que este archivo. */
 
 /* =========================================================
    Tablet y computadora
@@ -1742,3 +1727,71 @@ html[data-theme="claro"] .accion-item.incompleta{border-color:#cdbb8e !important
 @keyframes v28-vista-adelante{from{opacity:0;transform:perspective(1000px) translateZ(-90px) translateX(22px) scale(.95);filter:blur(8px)}62%{opacity:.94;filter:blur(1.2px)}to{opacity:1;transform:none;filter:none}}
 @keyframes v28-vista-atras{from{opacity:0;transform:perspective(1000px) translateZ(-90px) translateX(-22px) scale(.95);filter:blur(8px)}62%{opacity:.94;filter:blur(1.2px)}to{opacity:1;transform:none;filter:none}}
 @media (prefers-reduced-motion: reduce){.vista.entra-adelante,.vista.entra-atras{animation:none !important}}
+
+/* ===== v29 · sistema de movimiento premium (prompt maestro) =====
+   Solo transform y opacity (y un desenfoque breve al entrar). Todo respeta prefers-reduced-motion. */
+
+/* Hoy emerge (hf-entrada-app, 0.82 s) y sus elementos interiores terminan de acomodarse con pasos muy pequeños */
+.app.entrada-inicial .hoy-panel > *,.app.entrada-inicial .hoy-lista > *{animation:v29-acomoda .5s cubic-bezier(.2,.8,.2,1) both}
+.app.entrada-inicial .hoy-panel > :nth-child(2),.app.entrada-inicial .hoy-lista > :nth-child(1){animation-delay:.16s}
+.app.entrada-inicial .hoy-panel > :nth-child(3),.app.entrada-inicial .hoy-lista > :nth-child(2){animation-delay:.24s}
+.app.entrada-inicial .hoy-panel > :nth-child(n+4),.app.entrada-inicial .hoy-lista > :nth-child(n+3){animation-delay:.32s}
+@keyframes v29-acomoda{from{opacity:0;transform:translateY(9px)}to{opacity:1;transform:none}}
+
+/* Navegación: 0.32 s; la vista que sale se desvanece (copia inerte) mientras la nueva entra con profundidad */
+.vista.entra-adelante{animation-duration:.32s !important}
+.vista.entra-atras{animation-duration:.32s !important}
+.vista-fantasma{position:fixed;z-index:0;pointer-events:none;margin:0;
+  animation:v29-fantasma .2s cubic-bezier(.4,0,1,1) forwards}
+@keyframes v29-fantasma{from{opacity:.85;transform:none}to{opacity:0;transform:scale(.985)}}
+.app{z-index:1}
+.tab,.tab svg{transition:color .22s ease,background-color .22s ease,transform .15s ease}
+
+/* Ventanas: materialización en 0.36 s (velo → silueta tenue → escala → difuso a sólido → contenido) */
+.hoja[open]{animation-duration:.36s !important}
+.hoja-abajo[open] .hoja-cuerpo{animation-duration:.38s !important}
+.hoja::backdrop,.hoja-abajo::backdrop{animation-duration:.32s !important}
+.hoja[open]:not(.cerrando) > *,.hoja-abajo[open]:not(.cerrando) .hoja-cuerpo > *{animation:v29-contenido .3s .12s ease-out both}
+.hoja[open]:not(.cerrando) > :nth-child(n+3),.hoja-abajo[open]:not(.cerrando) .hoja-cuerpo > :nth-child(n+3){animation-delay:.18s}
+@keyframes v29-contenido{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+/* Cierre: primero se va el contenido, luego la ventana se reduce y pierde opacidad, y el velo se aclara */
+dialog.cerrando[open] > *,dialog.hoja-abajo.cerrando[open] .hoja-cuerpo > *{transition:opacity .12s ease-in;opacity:0}
+dialog.hoja.cerrando[open]{animation:v28-ventana-sale .26s .06s cubic-bezier(.4,0,1,1) forwards !important}
+dialog.hoja-abajo.cerrando[open] .hoja-cuerpo{animation:v28-hoja-sale .26s .06s cubic-bezier(.4,0,1,1) forwards !important}
+
+/* Tarjetas: respuesta táctil inmediata y palomita que se dibuja al completar */
+.item{transition:transform .14s cubic-bezier(.2,.8,.2,1),box-shadow .2s ease}
+.item:active:not(:has(button:active,a:active)){transform:scale(.988)}
+.item .check{position:relative;transition:background-color .18s ease,border-color .18s ease,transform .15s ease}
+.item .check:active{transform:scale(.9)}
+.item .check.confirmando{background:var(--ok) !important;border-color:var(--ok) !important;animation:v29-check .26s cubic-bezier(.2,.9,.3,1.2)}
+.item .check.confirmando::after{content:'';position:absolute;left:50%;top:46%;width:6px;height:11px;border:solid #fff;border-width:0 2.5px 2.5px 0;
+  transform:translate(-50%,-50%) rotate(45deg) scale(0);transform-origin:50% 50%;animation:v29-palomita .2s .06s cubic-bezier(.2,.9,.3,1) forwards}
+@keyframes v29-check{0%{transform:scale(.86)}60%{transform:scale(1.08)}100%{transform:none}}
+@keyframes v29-palomita{to{transform:translate(-50%,-55%) rotate(45deg) scale(1)}}
+.item.saliendo{transition:opacity .2s cubic-bezier(.4,0,1,1),transform .2s cubic-bezier(.4,0,1,1)}
+
+/* Botones físicos premium: relieve sutil, se hunden 1 px al presionar (sin rebotes) */
+.primario,.captura button:not(:disabled),.tab-nuevo > span,.filtro.activo,.chip.activo{
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.22),inset 0 -1px 0 rgba(0,0,0,.12),0 3px 8px rgba(0,20,15,.18) !important}
+.primario:not(:disabled):active,.captura button:not(:disabled):active,.secundario:not(:disabled):active,.filtro:active,.chip:active,.accion-item:active,.ir-stats:active{
+  transform:translateY(1px) scale(.98) !important;box-shadow:inset 0 1px 2px rgba(0,0,0,.18) !important}
+.tab-nuevo:active > span{transform:translateY(1px) scale(.96)}
+
+/* Tu semana: tarjetas escalonadas, barras que revelan su valor (solo al entrar a la sección) */
+.semana-entra .stats-tiles > *,.semana-entra .bloque,.semana-entra .bloque-titulo{animation:v29-acomoda .42s cubic-bezier(.2,.8,.2,1) both}
+.semana-entra .stats-tiles > :nth-child(2){animation-delay:.06s}.semana-entra .stats-tiles > :nth-child(3){animation-delay:.12s}
+.semana-entra .stats-tiles > :nth-child(4){animation-delay:.18s}.semana-entra .bloque,.semana-entra .bloque-titulo{animation-delay:.2s}
+.semana-entra .col-dia .barra{transform-origin:50% 100%;animation:v29-barra .6s calc(.25s + var(--i,0) * .05s) cubic-bezier(.2,.8,.2,1) both}
+.semana-entra .pista-h .total{transform-origin:0 50%;animation:v29-barra-h .6s calc(.3s + var(--i,0) * .06s) cubic-bezier(.2,.8,.2,1) both}
+@keyframes v29-barra{from{transform:scaleY(0)}to{transform:none}}
+@keyframes v29-barra-h{from{transform:scaleX(0)}to{transform:none}}
+
+@media (prefers-reduced-motion: reduce){
+  .app.entrada-inicial .hoy-panel > *,.app.entrada-inicial .hoy-lista > *,.vista-fantasma,
+  .hoja[open] > *,.hoja-abajo[open] .hoja-cuerpo > *,.item .check.confirmando,.item .check.confirmando::after,
+  .semana-entra .stats-tiles > *,.semana-entra .bloque,.semana-entra .bloque-titulo,.semana-entra .col-dia .barra,.semana-entra .pista-h .total{animation:none !important}
+  .vista-fantasma{display:none}
+  .item .check.confirmando::after{transform:translate(-50%,-55%) rotate(45deg) scale(1)}
+  .item:active,.primario:active,.captura button:active{transform:none !important}
+}

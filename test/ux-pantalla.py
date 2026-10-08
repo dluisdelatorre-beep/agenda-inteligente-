@@ -24,6 +24,9 @@ def abrir(p, w, h, **kw):
 with sync_playwright() as p:
     # ---------- Teléfono ----------
     ctx, pg = abrir(p, 390, 844)
+    # Mide dentro de la página el instante exacto en que el splash se oculta (sin la latencia de la prueba)
+    pg.add_init_script("""window.__finSplash = 0; new MutationObserver(() => { const s = document.getElementById('splash');
+      if (s && s.hidden && !window.__finSplash) window.__finSplash = performance.now(); }).observe(document, { subtree: true, attributes: true, childList: true });""")
     t0 = time.time()
     pg.goto(U)
     assert pg.is_visible("#splash")
@@ -36,7 +39,8 @@ with sync_playwright() as p:
     assert "js-llega" in sp["anims"], sp  # se mueven las letras, no la foto completa
     assert not pg.locator("#splash svg, #splash .firma-texto").count()  # ya no está el splash SVG antiguo
     pg.wait_for_selector("#splash", state="hidden", timeout=4000)
-    dur = pg.evaluate("performance.now()") / 1000  # tiempo real dentro de la página desde que empezó a cargar
+    pg.wait_for_function("window.__finSplash > 0")
+    dur = pg.evaluate("window.__finSplash") / 1000  # tiempo real dentro de la página desde que empezó a cargar
     assert dur < 3.0, dur  # regla de la casa: el splash nunca pasa de 3 s
     paso(f"splash: JPG original con las letras JS animadas en su propia capa; pasa a Hoy en {dur:.2f} s (máximo de la casa: 3 s)")
     pg.wait_for_timeout(700)
@@ -101,7 +105,8 @@ with sync_playwright() as p:
     pg.mouse.move(b["x"] + 10, b["y"] + 10); pg.mouse.down(); pg.wait_for_timeout(200)
     tr = pg.evaluate("getComputedStyle(document.querySelector('.filtro[data-filtro=hechos]')).transform")
     pg.mouse.up()
-    assert tr.startswith("matrix(0.97"), tr
+    _esc = float(tr.split("(")[1].split(",")[0]) if tr.startswith("matrix(") else 1
+    assert 0.95 <= _esc < 1, tr  # se hunde al presionar (botón físico: escala ~0.98 y baja 1 px)
     paso(f"botones: deshabilitado tenue, foco visible con teclado ({foco[0].lower()}), se hunde al presionar")
 
     # Cargando
@@ -121,13 +126,15 @@ with sync_playwright() as p:
     pg.screenshot(path=os.path.join(SALIDA, "ux-telefono-hoy.png"))
     pg.evaluate(ESPIA)
     item.locator(".check").click(); pg.wait_for_timeout(60)
-    assert "saliendo" in pg.locator("#lista .item", has_text="Cita con el dentista").get_attribute("class")
+    assert "confirmando" in pg.locator("#lista .item", has_text="Cita con el dentista").locator(".check").get_attribute("class")  # la palomita se dibuja primero
+    pg.wait_for_timeout(190)
+    assert "saliendo" in pg.locator("#lista .item", has_text="Cita con el dentista").get_attribute("class")  # luego la tarjeta se despide
     pg.wait_for_timeout(400)
     r = pg.evaluate("almacen.leer().then(l => l.find(x => x.texto.startsWith('Cita con el dentista')))")
     assert r["hecho"] and r["id"] in pg.evaluate("__sync")
     assert pg.locator("#lista .item", has_text="Cita con el dentista").count() == 0
     assert "asiente" in pg.evaluate("__gestos")
-    paso("completar: la tarjeta se despide sin salto, queda guardado y sincronizado (Web Push) y la asistente asiente")
+    paso("completar: la palomita se dibuja, la tarjeta se despide sin salto, queda guardado y sincronizado (Web Push) y la asistente asiente")
     pg.click(".filtro[data-filtro=hechos]"); pg.locator("#lista .item", has_text="Cita con el dentista").locator(".check").click(); pg.wait_for_timeout(400)
     r = pg.evaluate("almacen.leer().then(l => l.find(x => x.texto.startsWith('Cita con el dentista')))")
     assert not r["hecho"] and not r["avisado"] and "avisadoEn" not in r

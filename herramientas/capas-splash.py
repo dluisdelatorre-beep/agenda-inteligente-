@@ -12,7 +12,14 @@ for i in range(1, n):
 m = keep
 ys, xs = np.where(m > 0); print("letras bbox", xs.min(), ys.min(), xs.max(), ys.max(), "px", len(xs))
 quitar = cv2.dilate(m, np.ones((9, 9), np.uint8))        # letras + borde inmediato
-fondo = cv2.inpaint(img, quitar, 9, cv2.INPAINT_TELEA)   # capa de fondo sin letras (rellena con su propio entorno)
+# capa de fondo sin letras: relleno por convolución normalizada (promedio suave del entorno, sin dejar
+# la silueta de las letras). Así, cuando las letras rotan ±2°, debajo solo hay resplandor liso.
+q = (quitar == 0).astype(np.float32)
+f = img.astype(np.float32)
+num = cv2.GaussianBlur(f * q[..., None], (0, 0), 22); den = cv2.GaussianBlur(q, (0, 0), 22)[..., None]
+liso = num / np.maximum(den, 1e-4)
+borde = cv2.GaussianBlur((quitar > 0).astype(np.float32), (0, 0), 3)[..., None]
+fondo = np.clip(f * (1 - borde) + liso * borde, 0, 255).astype(np.uint8)
 # capa de letras: píxeles ORIGINALES con alfa suave (borde difuminado) para que en reposo coincida con la foto
 alfa = cv2.GaussianBlur(cv2.dilate(m, np.ones((5, 5), np.uint8)).astype(np.float32) / 255, (0, 0), 1.6)
 alfa = np.clip(alfa * 1.15, 0, 1)

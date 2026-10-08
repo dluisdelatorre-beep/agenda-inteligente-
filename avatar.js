@@ -11,7 +11,7 @@
 (function (raiz) {
   const ESTADOS = ['idle', 'attention', 'alert', 'greeting', 'assistant-open', 'success', 'return'];
   // Prioridad de las reacciones: una de menor prioridad no interrumpe a otra que sigue en curso
-  const PRIORIDAD = { 'assistant-open': 3, success: 2, greeting: 2, 'return': 1 };
+  const PRIORIDAD = { 'assistant-open': 3, success: 2, greeting: 2, 'return': 1, reconoce: 1 };
   const DURA_REACCION = 900;          // ms que se considera "en curso" una reacción
   const REGRESO_MIN_FUERA = 60000;    // reacciona al volver solo si estuvo fuera al menos 1 min
   const REGRESO_ENFRIA = 5 * 60000;   // y como máximo una vez cada 5 min
@@ -184,7 +184,7 @@
   //  'success'        → tarea creada o terminada: asiente y parpadea
   //  'boton'          → tocaron un botón: parpadea y una leve inclinación
   let ultimoBoton = 0;
-  let enCursoHasta = 0, enCursoPrio = 0, ultimoRegreso = 0, saludado = false;
+  let enCursoHasta = 0, enCursoPrio = 0, ultimoRegreso = 0, saludado = false, ultimoReconoce = 0;
   function reaccionar(nombre) {
     if (!boton) return false;
     const sinMovimiento = quieto.matches;
@@ -205,6 +205,11 @@
       if (sinMovimiento || !visible || ahora - ultimoRegreso < REGRESO_ENFRIA) return false;
       ultimoRegreso = ahora;
       cabeza('inclina'); setTimeout(parpadear, 140);
+    } else if (nombre === 'reconoce') {
+      // Volver a Hoy desde otra sección: gesto mínimo (parpadeo + leve inclinación), nunca el saludo completo
+      if (sinMovimiento || !visible || !saludado || ahora - ultimoReconoce < 12000) return false;
+      ultimoReconoce = ahora;
+      parpadear(); setTimeout(() => cabeza('inclina'), 90);
     } else if (nombre === 'assistant-open') {
       gesto('escucha');
       if (!sinMovimiento) { cabeza('inclina'); setTimeout(parpadear, 120); }
