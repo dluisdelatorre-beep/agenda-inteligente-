@@ -1,4 +1,4 @@
-# Pruebas de pantalla: sistema de movimiento premium (prompt maestro, v29)
+# Pruebas de pantalla: regresión de movimiento v30 sin doble parpadeo
 # Comprueba en el navegador que cada movimiento ocurre de verdad (no solo que exista en el código).
 from playwright.sync_api import sync_playwright
 import tempfile, sys, math
@@ -44,43 +44,44 @@ with sync_playwright() as p:
     paso(f"Hoy empieza a acercarse junto con el desvanecido del splash ({m['fin'] - m['sal']:.0f} ms de transición; splash fuera a los {m['fin'] / 1000:.2f} s)")
     pg.wait_for_selector("#resumen h2"); pg.wait_for_timeout(900)
 
-    # 3) Navegación: la vista que sale se desvanece (copia inerte) y la nueva entra con profundidad; nunca dos vistas activas
+    # 3) Navegación: la pantalla nunca baja a opacity=0 ni crea fantasmas al alternar.
     pg.click(".tab[data-ir=calendario]"); pg.wait_for_timeout(40)
-    f = pg.evaluate("(() => { const f = document.querySelector('.vista-fantasma'); return f && [getComputedStyle(f).animationName, f.inert, f.querySelectorAll('[id]').length]; })()")
-    assert f and f[0] == "v29-fantasma" and f[1] is True and f[2] == 0, f
-    assert pg.evaluate("document.querySelectorAll('.vista:not([hidden])').length") == 1
-    assert pg.evaluate("getComputedStyle(document.getElementById('vista-calendario')).animationDuration") == "0.32s"
-    pg.wait_for_timeout(400)
+    anim = pg.evaluate("""(() => { const v = document.getElementById('vista-calendario');
+      return [getComputedStyle(v).animationName, Number(getComputedStyle(v).opacity)]; })()""")
+    assert anim[0] == "v30-entra-adelante" and anim[1] > .99, anim
     assert pg.evaluate("document.querySelectorAll('.vista-fantasma').length") == 0
-    for v in ["buscar", "ajustes", "hoy", "calendario", "hoy"]:  # navegación rápida: no se acumulan copias ni vistas
+    assert pg.evaluate("document.querySelectorAll('.vista:not([hidden])').length") == 1
+    for v in ["buscar", "ajustes", "hoy", "calendario", "hoy"]:
         pg.click(f".tab[data-ir={v}]"); pg.wait_for_timeout(30)
-    assert pg.evaluate("document.querySelectorAll('.vista-fantasma').length") <= 1
-    pg.wait_for_timeout(500)
-    assert pg.evaluate("document.querySelectorAll('.vista-fantasma').length") == 0 and pg.evaluate("document.querySelectorAll('.vista:not([hidden])').length") == 1
-    paso("navegación: la pantalla saliente pierde opacidad, la entrante llega en 0.32 s con profundidad; navegando rápido no se duplican")
+        assert pg.evaluate("document.querySelectorAll('.vista-fantasma').length") == 0
+        assert pg.evaluate("document.querySelectorAll('.vista:not([hidden])').length") == 1
+    pg.wait_for_timeout(350)
+    paso("navegación v30: transición de profundidad sin duplicar pantallas ni bajar su opacidad")
 
-    # 4) Avatar: al regresar a Hoy reconoce con un gesto mínimo, sin repetir el saludo
-    pg.wait_for_timeout(12500)
-    pg.click(".tab[data-ir=buscar]"); pg.wait_for_timeout(400)
-    pg.evaluate("""window.__g = []; new MutationObserver(() => { const c = document.getElementById('abrirAsistente').className;
-      for (const g of ['parpadea', 'inclina', 'saluda']) if (c.includes(g) && !__g.includes(g)) __g.push(g); })
-      .observe(document.getElementById('abrirAsistente'), { attributes: true, attributeFilter: ['class'] }); 0""")
-    pg.click(".tab[data-ir=hoy]"); pg.wait_for_timeout(700)
-    g = pg.evaluate("__g")
-    assert "parpadea" in g and "saluda" not in g, g
-    paso(f"avatar: al volver a Hoy reconoce el regreso con un gesto mínimo ({', '.join(g)}), sin repetir la bienvenida")
+    # 4) Avatar: solo saluda una vez al entrar; cambiar de sección no fuerza otro parpadeo.
+    pg.click(".tab[data-ir=buscar]"); pg.wait_for_timeout(350)
+    gestoAntes = pg.evaluate("document.getElementById('abrirAsistente').dataset.reaccion || ''")
+    pg.click(".tab[data-ir=hoy]"); pg.wait_for_timeout(350)
+    gestoDespues = pg.evaluate("document.getElementById('abrirAsistente').dataset.reaccion || ''")
+    assert gestoAntes == gestoDespues, (gestoAntes, gestoDespues)
+    assert pg.evaluate("document.querySelector('#resumen #abrirAsistente') !== null")
+    paso("Avatar v30: sin saludo ni parpadeo artificial al navegar; permanece en Hoy")
 
-    # 5) Ventanas: contenido progresivo al abrir; al cerrar primero se va el contenido y luego la ventana
+    # 5) Ventanas: una sola materialización (de difuso a nítido), sin segundo flash en los hijos.
     pg.click("#abrirAsistente"); pg.wait_for_timeout(60)
-    a = pg.evaluate("[...document.querySelectorAll('#hojaAsistente .hoja-cuerpo > *')].map(e => getComputedStyle(e).animationName)")
-    assert any(n in ("v29-contenido", "contenido-revela") for n in a), a
+    a = pg.evaluate("""(() => { const d = document.getElementById('hojaAsistente');
+      return [getComputedStyle(d.querySelector('.hoja-cuerpo')).animationName,
+              getComputedStyle(d.querySelector('.hoja-cuerpo > *')).animationName]; })()""")
+    assert a == ["v30-ventana-materializa", "none"], a
+    assert pg.evaluate("document.querySelector('#resumen #abrirAsistente') !== null")
     pg.wait_for_timeout(600)
     pg.keyboard.press("Escape"); pg.wait_for_timeout(30)
-    c = pg.evaluate("(() => { const d = document.getElementById('hojaAsistente'); return [d.open, d.classList.contains('cerrando'), getComputedStyle(d.querySelector('.hoja-cuerpo > *')).transitionDuration]; })()")
+    c = pg.evaluate("""(() => { const d = document.getElementById('hojaAsistente');
+      return [d.open, d.classList.contains('cerrando'), getComputedStyle(d.querySelector('.hoja-cuerpo > *')).transitionDuration]; })()""")
     assert c[0] and c[1] and c[2] == "0.12s", c
     pg.wait_for_timeout(450)
     assert not pg.evaluate("document.getElementById('hojaAsistente').open")
-    paso("ventanas: el contenido aparece progresivamente; al cerrar se desvanece primero y luego la ventana se reduce y se va")
+    paso("ventanas v30: materialización única, cierre progresivo, Avatar sin trasladarse de Hoy")
 
     # 6) Tarjetas: borrar = salida + reacomodo suave de las demás (FLIP)
     for t in ["uno prueba hoy a las 11 pm", "dos prueba hoy a las 11:10 pm", "tres prueba hoy a las 11:20 pm"]:
@@ -121,9 +122,10 @@ with sync_playwright() as p:
     ctx, pg = abrir(p, 1440, 900)
     pg.goto(U); pg.wait_for_selector("#splash", state="hidden", timeout=4000); pg.wait_for_timeout(900)
     pg.click(".tab[data-ir=buscar]"); pg.wait_for_timeout(40)
-    assert pg.evaluate("document.querySelectorAll('.vista-fantasma').length") == 1
+    assert pg.evaluate("document.querySelectorAll('.vista-fantasma').length") == 0
+    assert pg.evaluate("getComputedStyle(document.getElementById('vista-buscar')).opacity") == "1"
     assert pg.evaluate("document.documentElement.scrollWidth <= innerWidth")
-    paso("computadora: misma navegación con profundidad y sin desplazamiento horizontal")
+    paso("computadora: navegación continua sin destello ni desplazamiento horizontal")
     ctx.close()
 
 print(f"{ok[0]} pruebas de movimiento pasaron")
