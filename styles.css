@@ -1795,3 +1795,58 @@ dialog.hoja-abajo.cerrando[open] .hoja-cuerpo{animation:v28-hoja-sale .26s .06s 
   .item .check.confirmando::after{transform:translate(-50%,-55%) rotate(45deg) scale(1)}
   .item:active,.primario:active,.captura button:active{transform:none !important}
 }
+
+/* ===== v30 · navegación sin destellos y ventanas que se materializan una sola vez =====
+   Una transición por superficie. No hay copias de pantallas ni opacidad=0 al navegar. */
+.vista-fantasma{display:none !important}
+.vista.entra-adelante{
+  animation:v30-entra-adelante .30s cubic-bezier(.2,.8,.2,1) both !important;
+}
+.vista.entra-atras{
+  animation:v30-entra-atras .30s cubic-bezier(.2,.8,.2,1) both !important;
+}
+@keyframes v30-entra-adelante{
+  from{opacity:1;transform:perspective(1000px) translateZ(-24px) translateX(7px) scale(.987);filter:none}
+  to{opacity:1;transform:none;filter:none}
+}
+@keyframes v30-entra-atras{
+  from{opacity:1;transform:perspective(1000px) translateZ(-24px) translateX(-7px) scale(.987);filter:none}
+  to{opacity:1;transform:none;filter:none}
+}
+
+/* Ventana completa: del contorno suave/degradado a una superficie nítida y sólida.
+   El contenido no se vuelve a ocultar ni hace una segunda animación. */
+dialog.hoja[open]:not(.cerrando){
+  animation:v30-ventana-materializa .42s cubic-bezier(.18,.8,.24,1) both !important;
+}
+dialog.hoja-abajo[open]:not(.cerrando) .hoja-cuerpo{
+  animation:v30-ventana-materializa .42s cubic-bezier(.18,.8,.24,1) both !important;
+}
+@keyframes v30-ventana-materializa{
+  0%{opacity:.52;transform:perspective(900px) translateZ(-48px) translateY(12px) scale(.965);filter:blur(9px)}
+  45%{opacity:.88;transform:perspective(900px) translateZ(-12px) translateY(3px) scale(.991);filter:blur(2px)}
+  100%{opacity:1;transform:none;filter:none}
+}
+/* Solo el velo de fondo va de tenue a oscuro, sin flashes extra en los hijos. */
+dialog.hoja::backdrop,dialog.hoja-abajo::backdrop{
+  animation:v30-velo .42s ease-out both !important;
+}
+@keyframes v30-velo{from{opacity:0}to{opacity:1}}
+dialog.hoja[open]:not(.cerrando) > *,
+dialog.hoja-abajo[open]:not(.cerrando) .hoja-cuerpo > *,
+dialog.hoja-abajo[open]:not(.cerrando) .asis-cabeza,
+dialog.hoja-abajo[open]:not(.cerrando) .asis-botones,
+dialog.hoja-abajo[open]:not(.cerrando) .asis-contenido,
+dialog.hoja-abajo[open]:not(.cerrando) .ficha-cabeza,
+dialog.hoja-abajo[open]:not(.cerrando) .ficha-acciones,
+dialog.hoja-abajo[open]:not(.cerrando) .ficha-datos,
+dialog.hoja-abajo[open]:not(.cerrando) .campos-contacto{
+  animation:none !important;
+  opacity:1 !important;
+}
+@media (prefers-reduced-motion:reduce){
+  .vista.entra-adelante,.vista.entra-atras,
+  dialog.hoja[open]:not(.cerrando),
+  dialog.hoja-abajo[open]:not(.cerrando) .hoja-cuerpo,
+  dialog.hoja::backdrop,dialog.hoja-abajo::backdrop{animation:none !important}
+}
