@@ -94,7 +94,8 @@
       if (e.animationName === 'avatar-pulso') boton.classList.remove('pulsando');
       if (e.animationName === 'avatar-parpadeo') boton.classList.remove('parpadea');
       if (e.animationName === 'avatar-inclina' || e.animationName === 'avatar-asiente') boton.classList.remove('inclina', 'asiente');
-      if (e.animationName === 'avatar-saluda') boton.classList.remove('saluda');
+      if (e.animationName === 'avatar-saluda' || e.animationName === 'v31-saludo') boton.classList.remove('saluda');
+      if (e.animationName === 'v31-micro') boton.classList.remove('microgesto');
     });
     boton.addEventListener('click', () => alTocar && alTocar());
     if ('IntersectionObserver' in window) {
@@ -118,6 +119,7 @@
       salioEn = 0;
     });
     programarParpadeo();
+    programarMicrogesto();
     // El Avatar permanece anclado a Hoy. Trasladarlo a un diálogo lo ocultaba
     // y al devolverlo parecía parpadear dos veces. La hoja conserva su imagen propia.
     return boton;
@@ -165,6 +167,18 @@
   function cabeza(tipo) { // 'inclina' | 'asiente'
     boton.classList.remove('inclina', 'asiente');
     gesto(tipo);
+  }
+
+  // Microgestos en reposo: cada 16–26 s, si está quieta y a la vista, ladea apenas la cabeza y vuelve
+  // (presencia discreta, sin moverse todo el tiempo). Nunca encima de otra reacción.
+  let relojMicro = null;
+  function programarMicrogesto() {
+    clearTimeout(relojMicro);
+    relojMicro = setTimeout(() => {
+      if (boton && visible && !document.hidden && !quieto.matches && Date.now() > enCursoHasta &&
+          boton.dataset.estado === 'idle' && !boton.classList.contains('saluda')) gesto('microgesto');
+      programarMicrogesto();
+    }, 16000 + Math.random() * 10000);
   }
 
   // Parpadeo natural cada 3.5–7 s, solo si se ve y sin "reducir movimiento"

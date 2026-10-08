@@ -55,11 +55,20 @@ with sync_playwright() as p:
     paso("transición entre vistas: siempre una sola vista visible, también navegando rápido")
     pg.click(".tab[data-ir=calendario]")
     anim = pg.evaluate("getComputedStyle(document.getElementById('vista-calendario')).animationName")
-    assert anim == "v28-vista-adelante", anim
+    assert anim == "v30-entra-adelante", anim
     pg.click(".tab[data-ir=hoy]")
     anim = pg.evaluate("getComputedStyle(document.getElementById('vista-hoy')).animationName")
-    assert anim == "v28-vista-atras", anim
+    assert anim == "v30-entra-atras", anim
     paso("ida y regreso coherentes: hacia adelante entra desde la derecha, al regresar desde la izquierda")
+    # Sin destellos: se mide la opacidad cuadro por cuadro durante 0.9 s después de cada cambio (antes caía a 0.2
+    # unos 0.3 s después de entrar, por una animación vieja que se reactivaba)
+    for v in ["calendario", "buscar", "hoy"]:
+        pg.evaluate("""() => { window.__op = []; const t0 = performance.now(); const f = () => { const vs = [...document.querySelectorAll('.vista:not([hidden])')];
+          window.__op.push([vs.length, Math.min(...vs.map(x => +getComputedStyle(x).opacity))]); if (performance.now() - t0 < 900) requestAnimationFrame(f); }; requestAnimationFrame(f); }""")
+        pg.click(f".tab[data-ir={v}]"); pg.wait_for_timeout(1000)
+        op = pg.evaluate("__op")
+        assert min(o for _, o in op) >= 0.95 and max(n for n, _ in op) == 1, (v, op)
+    paso("cambiar de pantalla no parpadea: la opacidad nunca baja de 0.95 y nunca hay dos pantallas")
 
     # Parpadeo en reposo: sí con la app visible, no si el avatar no se ve o la app está en segundo plano
     pg.evaluate("__gestos = []"); pg.wait_for_timeout(7600)

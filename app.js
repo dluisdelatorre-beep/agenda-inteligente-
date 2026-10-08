@@ -2000,7 +2000,7 @@
       }
       splash.classList.add('saliendo');
       if (window.avatarAsistente && avatarAsistente.mirar) avatarAsistente.mirar('frente');
-      setTimeout(() => avatarAsistente.reaccionar('greeting'), movimientoReducido ? 0 : 700);
+      setTimeout(() => avatarAsistente.reaccionar('greeting'), movimientoReducido ? 0 : 1050); // saluda cuando Hoy ya está nítida
       setTimeout(() => {
         splash.hidden = true;
         const barra = document.querySelector('meta[name="theme-color"]'); if (barra) barra.content = '#075b45'; // barra del sistema vuelve al esmeralda de la app
