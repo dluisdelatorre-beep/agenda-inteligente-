@@ -27,8 +27,8 @@ with sync_playwright() as p:
     assert "con-algo" not in pg.get_attribute("#abrirAsistente", "class")
     pg.click("#abrirAsistente"); pg.wait_for_selector("#hojaAsistente[open]")
     assert pg.inner_text("#asisFrase") == "Tu día está tranquilo. No tienes pendientes."
-    assert pg.is_disabled(".asis-preguntar") and "Próximamente" in pg.inner_text(".asis-preguntar")
-    paso("tocar el avatar abre 'Tu asistente'; sin pendientes dice que el día está tranquilo; 'Preguntarle algo' dice Próximamente")
+    assert pg.locator(".asis-preguntar").count() == 0  # v26 retiró el botón sin función (cada botón debe hacer algo real)
+    paso("tocar el avatar abre 'Tu asistente'; sin pendientes dice que el día está tranquilo; no hay botones sin función")
     pg.mouse.click(195, 40); pg.wait_for_timeout(350)
     assert not pg.evaluate("document.getElementById('hojaAsistente').open")
     paso("se cierra tocando fuera")
@@ -131,7 +131,8 @@ with sync_playwright() as p:
     pg.click("#abrirAsistente"); pg.wait_for_selector("#hojaAsistente[open]"); pg.wait_for_timeout(400)
     fondo = pg.evaluate("getComputedStyle(document.querySelector('.hoja-cuerpo')).backgroundColor")
     acento = pg.evaluate("getComputedStyle(document.querySelector('#asisBotones button.activo')).borderColor")
-    assert fondo == "rgb(26, 34, 34)", fondo
+    assert fondo == "rgb(10, 68, 56)", fondo  # superficie esmeralda de la v27 en tema oscuro
+    assert acento == "rgb(185, 162, 236)", acento  # el acento elegido (morado) sí se aplica
     paso(f"después de cerrar y abrir la app sigue igual; respeta tema oscuro ({fondo}) y el acento elegido ({acento})")
     pg.screenshot(path=os.path.join(SALIDA, "asistente-oscuro.png"))
     pg.keyboard.press("Escape"); pg.wait_for_timeout(300)

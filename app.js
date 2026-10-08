@@ -4,6 +4,38 @@
 (function () {
   const $ = (id) => document.getElementById(id);
   const POSPONER_MIN = 10;
+
+  // ---- Ventanas: salida animada (distinta de la entrada) para TODAS las hojas y diálogos ----
+  // Antes la mayoría se cerraba de golpe. Aquí se centraliza: close() y Esc primero animan la salida
+  // (.cerrando) y luego cierran de verdad. Si se vuelve a abrir mientras sale, se cancela la salida.
+  (function salidaDeVentanas() {
+    if (typeof HTMLDialogElement === 'undefined') return;
+    const proto = HTMLDialogElement.prototype;
+    const cerrarReal = proto.close, abrirModal = proto.showModal;
+    const SALIDA = 240;
+    const animable = (d) => d.matches('.hoja, .hoja-abajo') && !matchMedia('(prefers-reduced-motion: reduce)').matches;
+    proto.close = function (valor) {
+      if (!this.open) return cerrarReal.call(this, valor);
+      if (!animable(this)) { clearTimeout(this._salida); this.classList.remove('cerrando'); return cerrarReal.call(this, valor); }
+      if (this._salida) return; // ya va saliendo
+      this.classList.add('cerrando');
+      this._salida = setTimeout(() => {
+        this._salida = null;
+        this.classList.remove('cerrando');
+        const cuerpo = this.querySelector('.hoja-cuerpo'); if (cuerpo) cuerpo.style.transform = '';
+        cerrarReal.call(this, valor);
+      }, SALIDA);
+    };
+    if (abrirModal) proto.showModal = function () {
+      if (this._salida) { clearTimeout(this._salida); this._salida = null; this.classList.remove('cerrando'); if (this.open) return; }
+      return abrirModal.call(this);
+    };
+    // Esc: el navegador cerraría de golpe; se cambia por la misma salida animada
+    document.addEventListener('cancel', (e) => {
+      const d = e.target;
+      if (d instanceof HTMLDialogElement && animable(d)) { e.preventDefault(); d.close(); }
+    }, true);
+  })();
   let pendientes = [];
   let filtro = 'pendientes';
   let borrador = null;
@@ -1317,9 +1349,7 @@
   function cerrarAsistente() {
     const dlg = $('hojaAsistente');
     if (!dlg.open || dlg.classList.contains('cerrando')) return;
-    const quieto = matchMedia('(prefers-reduced-motion: reduce)').matches;
-    dlg.classList.add('cerrando');
-    setTimeout(() => { dlg.classList.remove('cerrando'); dlg.querySelector('.hoja-cuerpo').style.transform = ''; dlg.close(); }, quieto ? 0 : 200);
+    dlg.close(); // la salida animada la hace el cierre central de ventanas
   }
 
   const filaAsis = (p, ahora, extra = {}) => {
@@ -1891,20 +1921,22 @@
 
   // ---- Splash de apertura (firma JS) ----
   // Ritual de apertura de marca: debe sentirse, no parpadear.
-  // Permanece visible al menos 2.2 s y termina antes de 3 s en condiciones normales.
+  // Permanece visible al menos 1.7 s y pasa a Hoy antes de ~2.5 s (regla de la casa: máximo 3 s).
   const splash = $('splash');
   const inicioSplash = performance.now();
+  let inicioSplashSaltado = false;
   const movimientoReducido = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const minimoSplash = 2200;
+  const minimoSplash = 1700;
   const salidaSplash = movimientoReducido ? 0 : 420;
   function quitarSplash() {
     if (!splash || splash.hidden || splash.classList.contains('saliendo')) return;
-    const espera = Math.max(0, minimoSplash - (performance.now() - inicioSplash));
+    const espera = inicioSplashSaltado ? 0 : Math.max(0, minimoSplash - (performance.now() - inicioSplash));
     setTimeout(() => {
       if (!splash || splash.hidden || splash.classList.contains('saliendo')) return;
       splash.classList.add('saliendo');
       setTimeout(() => {
         splash.hidden = true;
+        const barra = document.querySelector('meta[name="theme-color"]'); if (barra) barra.content = '#075b45'; // barra del sistema vuelve al esmeralda de la app
         const appRaiz = document.querySelector('.app');
         if (appRaiz) {
           appRaiz.classList.remove('app-preentrada');
@@ -1916,8 +1948,10 @@
       }, salidaSplash);
     }, espera);
   }
-  // Respaldo: si algo tarda en inicializar, el splash comienza a salir a los 2.5 s.
-  setTimeout(quitarSplash, 2500);
+  // Tocar el splash lo salta (sin esperar el mínimo)
+  if (splash) splash.addEventListener('click', () => { inicioSplashSaltado = true; quitarSplash(); });
+  // Respaldo: si algo tarda en inicializar, el splash comienza a salir a los 2.1 s.
+  setTimeout(quitarSplash, 2100);
 
   Promise.all([ajustes.cargar(), recargar()]).then(async () => {
     quitarSplash();

@@ -853,7 +853,7 @@ body {
 @keyframes firma-entra { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 @keyframes firma-traza { to { stroke-dashoffset: 0; } }
 @media (prefers-reduced-motion: reduce) {
-  .splash, .splash * { animation: none !important; transition: none !important; }
+  .splash * { animation: none !important; } .splash { transition: none !important; }
   .firma-trazo { stroke-dashoffset: 0; }
 }
 
@@ -1652,37 +1652,93 @@ body { background:#f4efe3 !important; }
 }
 
 /* ===== v27 · acabado esmeralda de alto contraste ===== */
-:root{
+:root:not([data-theme="claro"]){
   --fondo:#052f27;--papel:#0a4438;--tinta:#fff6df;--suave:#d9cda9;--linea:#246d5b;
-  --acento:#64e1bd;--sobre-acento:#032a23;--atrasado-resumen:#ffd38b;color-scheme:dark;
+  --acento:var(--acento-esmeralda,#64e1bd);--sobre-acento:#032a23;--atrasado-resumen:#ffd38b;color-scheme:dark;
 }
-body,body::before{background:#052f27 !important;background-image:none !important}
-.app{position:relative}
-.hoy-panel,.hoy-lista,.bloque,.item,.captura,.mes,.stats-tiles>*,.contacto,.hoja,.hoja-cuerpo{
+html:not([data-theme="claro"]) body,html:not([data-theme="claro"]) body::before{background:#052f27 !important;background-image:none !important}
+html:not([data-theme="claro"]) .app{position:relative}
+html:not([data-theme="claro"]) .hoy-panel,html:not([data-theme="claro"]) .hoy-lista,html:not([data-theme="claro"]) .bloque,html:not([data-theme="claro"]) .item,html:not([data-theme="claro"]) .captura,html:not([data-theme="claro"]) .mes,html:not([data-theme="claro"]) .stats-tiles>*,html:not([data-theme="claro"]) .contacto,html:not([data-theme="claro"]) .hoja,html:not([data-theme="claro"]) .hoja-cuerpo{
   background:#0a4438 !important;color:#fff6df !important;border-color:#246d5b !important;
   box-shadow:0 14px 34px rgba(0,18,14,.24),inset 0 1px 0 rgba(255,255,255,.045) !important;
 }
-.hoy-panel{background:linear-gradient(180deg,#0b493c 0%,#083b31 100%) !important}
-.hoy-lista{background:#07372e !important}
-.nombre-app,.encabezado h1,.titulo-dia h2,.bloque-titulo{color:#f0c96c !important;text-shadow:0 1px 12px rgba(240,201,108,.08)}
-.fecha-hoy,.conteo,.nota,.pie,.estado-avisos,.stats-intro{color:#d9cda9 !important}
-.resumen{
+html:not([data-theme="claro"]) .hoy-panel{background:linear-gradient(180deg,#0b493c 0%,#083b31 100%) !important}
+html:not([data-theme="claro"]) .hoy-lista{background:#07372e !important}
+html:not([data-theme="claro"]) .nombre-app,html:not([data-theme="claro"]) .encabezado h1,html:not([data-theme="claro"]) .titulo-dia h2,html:not([data-theme="claro"]) .bloque-titulo{color:#f0c96c !important;text-shadow:0 1px 12px rgba(240,201,108,.08)}
+html:not([data-theme="claro"]) .fecha-hoy,html:not([data-theme="claro"]) .conteo,html:not([data-theme="claro"]) .nota,html:not([data-theme="claro"]) .pie,html:not([data-theme="claro"]) .estado-avisos,html:not([data-theme="claro"]) .stats-intro{color:#d9cda9 !important}
+html:not([data-theme="claro"]) .resumen{
   background:linear-gradient(145deg,#063b31 0%,#0b5a49 100%) !important;color:#fff6df !important;
   border:1px solid #26705d !important;box-shadow:0 12px 28px rgba(0,18,14,.3),inset 0 1px 0 rgba(255,255,255,.06) !important
 }
-.resumen .hora{color:#8ff0d2 !important;opacity:1}
-.resumen .atrasados{color:#ffd38b !important}
-.captura input,.busqueda input,.campos-contacto input,.campos-contacto textarea{
+html:not([data-theme="claro"]) .resumen .hora{color:#8ff0d2 !important;opacity:1}
+html:not([data-theme="claro"]) .resumen .atrasados{color:#ffd38b !important}
+html:not([data-theme="claro"]) .captura input,html:not([data-theme="claro"]) .busqueda input,html:not([data-theme="claro"]) .campos-contacto input,html:not([data-theme="claro"]) .campos-contacto textarea{
   background:#062f28 !important;color:#fff6df !important;border-color:#246d5b !important
 }
-.captura input::placeholder,.busqueda input::placeholder,.campos-contacto input::placeholder,.campos-contacto textarea::placeholder{color:#b9b091 !important;opacity:1}
-.filtro,.chip,.secundario,.secundario-ancho,.ir-stats,.volver,.redondo,.ir-hoy{color:#cce8df !important;border-color:#2c7563 !important}
-.filtro.activo,.chip.activo,.primario,.captura button:not(:disabled){background:#64e1bd !important;color:#032a23 !important;border-color:#64e1bd !important}
-.tabbar{
+html:not([data-theme="claro"]) .captura input::placeholder,html:not([data-theme="claro"]) .busqueda input::placeholder,html:not([data-theme="claro"]) .campos-contacto input::placeholder,html:not([data-theme="claro"]) .campos-contacto textarea::placeholder{color:#b9b091 !important;opacity:1}
+html:not([data-theme="claro"]) .filtro,html:not([data-theme="claro"]) .chip,html:not([data-theme="claro"]) .secundario,html:not([data-theme="claro"]) .secundario-ancho,html:not([data-theme="claro"]) .ir-stats,html:not([data-theme="claro"]) .volver,html:not([data-theme="claro"]) .redondo,html:not([data-theme="claro"]) .ir-hoy{color:#cce8df !important;border-color:#2c7563 !important}
+html:not([data-theme="claro"]) .filtro.activo,html:not([data-theme="claro"]) .chip.activo,html:not([data-theme="claro"]) .primario,html:not([data-theme="claro"]) .captura button:not(:disabled){background:var(--acento) !important;color:#032a23 !important;border-color:var(--acento) !important}
+html:not([data-theme="claro"]) .tabbar{
   background:#062f28 !important;border-color:#246d5b !important;
   box-shadow:0 -10px 30px rgba(0,18,14,.32) !important
 }
-.tab{color:#b9cfc7 !important}.tab.activo{color:#64e1bd !important}.tab-nuevo>span{background:#f0c96c !important;color:#07372e !important}
-.hoja::backdrop,.hoja-abajo::backdrop{background:rgba(0,18,14,.72) !important}
-.asistente-btn.avatar-en-dialogo{display:none !important}.hoja-abajo .asis-avatar{display:block !important}
+html:not([data-theme="claro"]) .tab{color:#b9cfc7 !important}html:not([data-theme="claro"]) .tab.activo{color:var(--acento) !important}html:not([data-theme="claro"]) .tab-nuevo>span{background:#f0c96c !important;color:#07372e !important}
+html:not([data-theme="claro"]) .hoja::backdrop,html:not([data-theme="claro"]) .hoja-abajo::backdrop{background:rgba(0,18,14,.72) !important}
+html:not([data-theme="claro"]) .asistente-btn.avatar-en-dialogo{display:none !important}html:not([data-theme="claro"]) .hoja-abajo .asis-avatar{display:block !important}
 @media(max-width:767px){.hoja-cuerpo{max-height:calc(100dvh - 18px);overflow:auto;overscroll-behavior:contain}}
+
+/* Color de acento sobre la piel esmeralda (Ajustes → Color de acento) */
+[data-accent="naranja"]{--acento-esmeralda:#f0a06b}[data-accent="azul"]{--acento-esmeralda:#8fb3f0}
+[data-accent="morado"]{--acento-esmeralda:#b9a2ec}[data-accent="rojo"]{--acento-esmeralda:#f0a196}
+
+/* ===== v28 · orden de trabajo: salida de ventanas, encabezado legible y botones profesionales ===== */
+/* Ventanas: la salida es distinta de la entrada (más corta, hacia abajo y hacia atrás) y nunca de golpe.
+   La clase .cerrando la pone el cierre central de ventanas (app.js) antes de cerrar de verdad. */
+dialog.hoja.cerrando[open]{animation:v28-ventana-sale .24s cubic-bezier(.4,0,1,1) forwards !important;will-change:transform,opacity}
+dialog.hoja-abajo.cerrando[open] .hoja-cuerpo{animation:v28-hoja-sale .24s cubic-bezier(.4,0,1,1) forwards !important;will-change:transform,opacity}
+dialog.cerrando[open]::backdrop{animation:v28-velo-sale .24s ease-in forwards !important}
+.hoja[open],.hoja-abajo[open] .hoja-cuerpo{will-change:transform,opacity}
+@keyframes v28-ventana-sale{to{opacity:0;transform:perspective(900px) translateY(10px) translateZ(-60px) scale(.95);filter:blur(4px)}}
+@keyframes v28-hoja-sale{to{opacity:0;transform:translateY(46px) scale(.97);filter:blur(3px)}}
+@keyframes v28-velo-sale{to{opacity:0}}
+@media (prefers-reduced-motion: reduce){
+  dialog.hoja.cerrando[open],dialog.hoja-abajo.cerrando[open] .hoja-cuerpo,dialog.cerrando[open]::backdrop{animation:none !important}
+}
+
+/* Encabezado: Contactos y Tu semana con ícono de línea y texto legible (antes: letra menta sobre crema) */
+.marca-app{flex-wrap:nowrap !important}
+.nombre-app{min-width:0}
+.atajos-app{margin-left:auto;display:flex;gap:8px;flex:none}
+.marca-app .ir-stats{
+  margin-left:0;display:inline-flex;flex-direction:row;align-items:center;justify-content:center;gap:7px;
+  min-height:44px;padding:8px 13px;border-radius:12px;
+  background:#0a4438 !important;color:#fff6df !important;border:1px solid #2c7563 !important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 6px 16px rgba(0,18,14,.22);
+  font:600 .84rem/1 Inter,system-ui,sans-serif;
+}
+.marca-app .ir-stats span{font-size:.84rem;color:inherit}
+.marca-app .ir-stats svg{width:19px;height:19px;flex:none;fill:none;stroke:#f0c96c;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+@media (hover:hover) and (pointer:fine){.marca-app .ir-stats:hover{background:#0d5345 !important;border-color:#3a8a75 !important}}
+@media (max-width:599px),(min-width:1100px){
+  .marca-app .ir-stats{width:44px;height:44px;padding:0}
+  .marca-app .ir-stats span{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  .marca-app .ir-stats svg{width:21px;height:21px}
+}
+
+/* Guardar vacío: se lee como el botón principal en reposo, no como un botón roto */
+.captura button:disabled{opacity:1 !important;background:#0d4f41 !important;color:#a9d3c5 !important;border:1px solid #2c7563 !important;box-shadow:none !important}
+
+/* Acción por completar: contorno sólido y fino (sin línea punteada) */
+.accion-item.incompleta{border:1px solid #2c7563 !important;border-style:solid !important;background:transparent !important;color:#8ff0d2 !important}
+/* Tema Claro (Ajustes): mismas piezas sobre la superficie crema de la v26 */
+html[data-theme="claro"] .marca-app .ir-stats{background:#fffaf0 !important;color:#0f3d3e !important;border-color:#dfd1ad !important;box-shadow:0 4px 12px rgba(15,61,62,.10)}
+html[data-theme="claro"] .marca-app .ir-stats svg{stroke:#a87b26}
+html[data-theme="claro"] .captura button:disabled{background:#e4ece7 !important;color:#4d6f62 !important;border-color:#cbd8d1 !important}
+html[data-theme="claro"] .accion-item.incompleta{border-color:#cdbb8e !important;color:#075b45 !important}
+/* Navegación entre vistas: profundidad (v25) + dirección espacial (Selene): adelante entra desde la derecha,
+   al regresar desde la izquierda. */
+.vista.entra-adelante{animation:v28-vista-adelante .48s cubic-bezier(.16,.78,.22,1) !important}
+.vista.entra-atras{animation:v28-vista-atras .48s cubic-bezier(.16,.78,.22,1) !important}
+@keyframes v28-vista-adelante{from{opacity:0;transform:perspective(1000px) translateZ(-90px) translateX(22px) scale(.95);filter:blur(8px)}62%{opacity:.94;filter:blur(1.2px)}to{opacity:1;transform:none;filter:none}}
+@keyframes v28-vista-atras{from{opacity:0;transform:perspective(1000px) translateZ(-90px) translateX(-22px) scale(.95);filter:blur(8px)}62%{opacity:.94;filter:blur(1.2px)}to{opacity:1;transform:none;filter:none}}
+@media (prefers-reduced-motion: reduce){.vista.entra-adelante,.vista.entra-atras{animation:none !important}}

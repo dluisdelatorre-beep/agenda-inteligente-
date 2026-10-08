@@ -229,11 +229,15 @@
     const origenPadre = boton.parentNode;
     const origenSiguiente = boton.nextSibling;
 
+    // Al cerrar la ventana la asistente SIEMPRE regresa a su lugar en Hoy (la tarjeta #resumen).
+    // Antes se tomaba el lugar de origen al crear el botón, cuando aún no estaba en la página (null),
+    // y la asistente se quedaba oculta dentro de la ventana cerrada hasta recargar la app.
     const devolver = () => {
-      if (!origenPadre || boton.parentNode === origenPadre) return;
       boton.classList.remove('avatar-en-dialogo', 'mira-tarea');
-      if (origenSiguiente && origenSiguiente.parentNode === origenPadre) origenPadre.insertBefore(boton, origenSiguiente);
-      else origenPadre.appendChild(boton);
+      const casa = document.getElementById('resumen') || origenPadre;
+      if (!casa || boton.parentNode === casa) return;
+      if (origenSiguiente && origenSiguiente.parentNode === casa) casa.insertBefore(boton, origenSiguiente);
+      else casa.appendChild(boton);
     };
 
     const acompanar = (dlg) => {

@@ -1,3 +1,4 @@
+import re
 # Pruebas de pantalla: Agenda UX 1.0 (splash JS, movimiento, avatar con presencia, botones, tablet y computadora)
 from playwright.sync_api import sync_playwright
 import tempfile, sys, os, time
@@ -25,11 +26,19 @@ with sync_playwright() as p:
     ctx, pg = abrir(p, 390, 844)
     t0 = time.time()
     pg.goto(U)
-    assert pg.is_visible("#splash") and pg.text_content("#splash .firma-texto") == "JS"
-    pg.wait_for_selector("#splash", state="hidden", timeout=3000)
-    dur = time.time() - t0
-    assert dur < 2.0, dur
-    paso(f"splash de apertura con la firma JS; pasa a Hoy en {dur:.2f} s (no retrasa la carga)")
+    assert pg.is_visible("#splash")
+    # Splash = JPG original aprobado (1000269581.jpg) en capas: fondo + letras JS recortadas de la misma foto
+    sp = pg.evaluate("""() => ({ fondo: document.querySelector('#splash .splash-lienzo').style.backgroundImage || getComputedStyle(document.querySelector('#splash .splash-lienzo')).backgroundImage,
+        capas: [...document.querySelectorAll('#splash img')].map(i => i.getAttribute('src')),
+        anims: document.querySelector('#splash .splash-letras').getAnimations().map(a => a.animationName) })""")
+    assert "1000269581.jpg" in sp["fondo"], sp
+    assert sp["capas"] == ["carga/splash-js-fondo.jpg", "carga/splash-js-letras.png"], sp
+    assert "js-llega" in sp["anims"], sp  # se mueven las letras, no la foto completa
+    assert not pg.locator("#splash svg, #splash .firma-texto").count()  # ya no está el splash SVG antiguo
+    pg.wait_for_selector("#splash", state="hidden", timeout=4000)
+    dur = pg.evaluate("performance.now()") / 1000  # tiempo real dentro de la página desde que empezó a cargar
+    assert dur < 3.0, dur  # regla de la casa: el splash nunca pasa de 3 s
+    paso(f"splash: JPG original con las letras JS animadas en su propia capa; pasa a Hoy en {dur:.2f} s (máximo de la casa: 3 s)")
     pg.wait_for_timeout(700)
     assert pg.get_attribute("#abrirAsistente", "data-reaccion") == "greeting"
     pg.evaluate(ESPIA)
@@ -42,10 +51,10 @@ with sync_playwright() as p:
     paso("transición entre vistas: siempre una sola vista visible, también navegando rápido")
     pg.click(".tab[data-ir=calendario]")
     anim = pg.evaluate("getComputedStyle(document.getElementById('vista-calendario')).animationName")
-    assert anim == "vista-adelante", anim
+    assert anim == "v28-vista-adelante", anim
     pg.click(".tab[data-ir=hoy]")
     anim = pg.evaluate("getComputedStyle(document.getElementById('vista-hoy')).animationName")
-    assert anim == "vista-atras", anim
+    assert anim == "v28-vista-atras", anim
     paso("ida y regreso coherentes: hacia adelante entra desde la derecha, al regresar desde la izquierda")
 
     # Parpadeo en reposo: sí con la app visible, no si el avatar no se ve o la app está en segundo plano
@@ -64,12 +73,27 @@ with sync_playwright() as p:
     assert pg.get_attribute("#abrirAsistente", "data-reaccion") == "assistant-open"
     paso("las reacciones no se pisan: con el panel recién abierto, una de menor prioridad espera")
     pg.screenshot(path=os.path.join(SALIDA, "ux-telefono-asistente.png"))
-    pg.keyboard.press("Escape"); pg.wait_for_timeout(400)
+    pg.keyboard.press("Escape"); pg.wait_for_timeout(60)
+    sale = pg.evaluate("(() => { const d = document.getElementById('hojaAsistente'); return [d.open, d.classList.contains('cerrando'), getComputedStyle(d.querySelector('.hoja-cuerpo')).animationName]; })()")
+    assert sale[0] and sale[1] and sale[2] == "v28-hoja-sale", sale  # sale animada (distinta de la entrada), no de golpe
+    pg.wait_for_timeout(400)
     assert not pg.evaluate("document.getElementById('hojaAsistente').open")
-    paso("panel del asistente abre y cierra (Esc / atrás)")
+    paso("panel del asistente abre materializándose y cierra con su propia salida animada (Esc / atrás)")
+    # Diálogo centrado (confirmar): también entra y sale animado
+    pg.evaluate("document.getElementById('confirmar').showModal()"); pg.wait_for_timeout(80)
+    ent = pg.evaluate("getComputedStyle(document.getElementById('confirmar')).animationName")
+    pg.wait_for_timeout(600); pg.evaluate("document.getElementById('confirmar').close()"); pg.wait_for_timeout(60)
+    sal = pg.evaluate("getComputedStyle(document.getElementById('confirmar')).animationName")
+    assert ent != "none" and sal == "v28-ventana-sale" and ent != sal, (ent, sal)
+    pg.wait_for_timeout(400); assert not pg.evaluate("document.getElementById('confirmar').open")
+    paso(f"ventanas centradas: entrada {ent} y salida {sal}, nunca de golpe")
 
     # Botones: disabled, focus-visible, pressed
-    assert pg.is_disabled("#guardar") and pg.evaluate("getComputedStyle(document.getElementById('guardar')).opacity") == "0.5"
+    # Guardar vacío: deshabilitado, legible (opacidad completa) y distinto de cuando ya se puede guardar
+    _off = pg.evaluate("getComputedStyle(document.getElementById('guardar')).backgroundColor")
+    assert pg.is_disabled("#guardar") and pg.evaluate("getComputedStyle(document.getElementById('guardar')).opacity") == "1"
+    pg.fill("#entrada", "x"); pg.wait_for_timeout(260); _on = pg.evaluate("getComputedStyle(document.getElementById('guardar')).backgroundColor"); pg.fill("#entrada", "")
+    assert _off != _on, (_off, _on)
     pg.focus("#entrada"); pg.keyboard.press("Shift+Tab")
     foco = pg.evaluate("(() => { const e = document.activeElement; const s = getComputedStyle(e); return [e.tagName, s.outlineStyle]; })()")
     assert foco[1] == "solid", foco
@@ -120,8 +144,9 @@ with sync_playwright() as p:
     # Service worker / PWA
     sw = pg.evaluate("navigator.serviceWorker.ready.then(r => r.active && r.active.scriptURL)")
     assert sw.endswith("/sw.js")
-    assert pg.evaluate("caches.keys()") and "agenda-v21" in pg.evaluate("caches.keys()")
-    paso("service worker activo con caché agenda-v21 (PWA/offline sin regresión)")
+    _cache = re.search(r"CACHE = '([^']+)'", open(os.path.join(os.path.dirname(__file__), "..", "sw.js")).read()).group(1)
+    assert pg.evaluate("caches.keys()") and _cache in pg.evaluate("caches.keys()")
+    paso(f"service worker activo con caché {_cache} (PWA/offline sin regresión)")
     assert pg.evaluate("document.documentElement.scrollWidth <= innerWidth")
     pg.click(".tab[data-ir=calendario]"); pg.wait_for_timeout(300); pg.screenshot(path=os.path.join(SALIDA, "ux-telefono-calendario.png"))
     pg.click(".tab[data-ir=hoy]"); pg.click("#verContactos"); pg.wait_for_timeout(300); pg.screenshot(path=os.path.join(SALIDA, "ux-telefono-contactos.png"))
@@ -129,7 +154,7 @@ with sync_playwright() as p:
 
     # ---------- Movimiento reducido ----------
     ctx, pg = abrir(p, 390, 844, reduced_motion="reduce")
-    pg.goto(U); pg.wait_for_selector("#splash", state="hidden", timeout=3000)
+    pg.goto(U); pg.wait_for_selector("#splash", state="hidden", timeout=4000)
     pg.evaluate(ESPIA)
     pg.click(".tab[data-ir=calendario]")
     assert pg.evaluate("getComputedStyle(document.getElementById('vista-calendario')).animationName") == "none"
@@ -143,7 +168,7 @@ with sync_playwright() as p:
     # ---------- Tablet y computadora ----------
     for nombre, w, h in [("tablet", 820, 1180), ("computadora", 1440, 900)]:
         ctx, pg = abrir(p, w, h)
-        pg.goto(U); pg.wait_for_selector("#splash", state="hidden", timeout=3000)
+        pg.goto(U); pg.wait_for_selector("#splash", state="hidden", timeout=4000)
         pg.evaluate("""async () => { const l = await almacen.leer(); const a = Date.now();
           const n = (t, m, x) => ({ id: 'u' + Math.random().toString(36).slice(2, 7), texto: t, cuando: new Date(a + m * 60000).toISOString(), conHora: true,
             hecho: false, avisado: true, creado: new Date().toISOString(), priority: 'normal', ...(x || {}) });
@@ -152,7 +177,7 @@ with sync_playwright() as p:
                  n('Cita con el dentista', 180, { actionType: 'ubicacion', location: 'Av Tulum 230', category: 'salud' }),
                  n('Revisar propuesta', -40, { category: 'trabajo' }));
           await almacen.guardar(l); }""")
-        pg.reload(); pg.wait_for_selector("#splash", state="hidden", timeout=3000); pg.wait_for_timeout(500)
+        pg.reload(); pg.wait_for_selector("#splash", state="hidden", timeout=4000); pg.wait_for_timeout(500)
         assert pg.evaluate("document.documentElement.scrollWidth <= innerWidth")
         ancho = pg.evaluate("document.querySelector('#vista-hoy').getBoundingClientRect().width")
         if nombre == "computadora":

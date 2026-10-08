@@ -105,14 +105,19 @@ with sync_playwright() as p:
     assert pg.is_checked("input[name=density][value=comoda]") and pg.is_checked("#ajSonido")
     pg.click("label:has(input[name=theme][value=oscuro])"); pg.wait_for_timeout(150)
     fondo = pg.evaluate("getComputedStyle(document.body).backgroundColor")
-    assert pg.evaluate("document.documentElement.dataset.theme") == "oscuro" and fondo == "rgb(17, 23, 23)", fondo
+    assert pg.evaluate("document.documentElement.dataset.theme") == "oscuro" and fondo == "rgb(5, 47, 39)", fondo  # oscuro = piel esmeralda (v27)
     paso(10, "modo oscuro aplicado al instante")
+    pg.click("label:has(input[name=theme][value=claro])"); pg.wait_for_timeout(150)
+    claro = pg.evaluate("getComputedStyle(document.body).backgroundColor")
+    assert claro == "rgb(244, 239, 227)", claro  # Claro vuelve a funcionar (en v27 no cambiaba nada)
+    print("  ✓    extra: tema Claro aplica la superficie crema")
+    pg.click("label:has(input[name=theme][value=oscuro])"); pg.wait_for_timeout(150)
     n_pend = pg.evaluate("almacen.leer().then(l => l.length)")
     ctx.close()
     ctx, pg = abrir(p)
     paso(11, "app cerrada por completo y vuelta a abrir (mismo perfil)")
     fondo = pg.evaluate("getComputedStyle(document.body).backgroundColor")
-    assert pg.evaluate("document.documentElement.dataset.theme") == "oscuro" and fondo == "rgb(17, 23, 23)", fondo
+    assert pg.evaluate("document.documentElement.dataset.theme") == "oscuro" and fondo == "rgb(5, 47, 39)", fondo  # oscuro = piel esmeralda (v27)
     assert pg.evaluate("almacen.leer().then(l => l.length)") == n_pend
     paso(12, "conserva modo oscuro al reabrir (y los pendientes)")
     pg.screenshot(path="/tmp/claude-0/-home-claude/664b7c3d-405b-5f8f-9031-07e69fa0cf95/scratchpad/s-hoy-oscuro.png")
@@ -124,7 +129,7 @@ with sync_playwright() as p:
                "ajustes: interruptor": pg.evaluate("getComputedStyle(document.getElementById('ajSonido')).backgroundColor")}
     paso(13, "color de acento cambiado a morado")
     tab(pg, "hoy"); fondo_resumen = pg.evaluate("getComputedStyle(document.getElementById('resumen')).backgroundImage")
-    colores["hoy: resumen"] = MORADO if MORADO in fondo_resumen else fondo_resumen  # degradado con el acento
+    assert "rgb(6, 59, 49)" in fondo_resumen, fondo_resumen  # la tarjeta de saludo es identidad esmeralda (v27) y no cambia con el acento
     colores["hoy: filtro activo"] = pg.evaluate("getComputedStyle(document.querySelector('.filtro.activo')).backgroundColor")
     pg.screenshot(path="/tmp/claude-0/-home-claude/664b7c3d-405b-5f8f-9031-07e69fa0cf95/scratchpad/s-hoy-morado.png")
     tab(pg, "calendario"); colores["calendario: día elegido"] = pg.evaluate("getComputedStyle(document.querySelector('.dia.sel')).backgroundColor")

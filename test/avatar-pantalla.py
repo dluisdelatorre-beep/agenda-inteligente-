@@ -29,7 +29,7 @@ with sync_playwright() as p:
         assert pg.get_attribute("#abrirAsistente", "data-estado") == "idle"
         a = pg.evaluate(ANIMS, ".avatar-respira")
         assert len(a) == 1 and a[0]["n"] == "avatar-respira" and 4000 <= a[0]["d"] <= 6000 and a[0]["it"] == float("inf"), a
-        assert a[0]["props"] == ["transform"] and "translateY(-3px) scale(1.02)" in a[0]["kf"], a
+        assert a[0]["props"] == ["transform"] and "translateY(-2px) scale(1.012)" in a[0]["kf"], a
         assert pg.evaluate("getComputedStyle(document.querySelector('.avatar-respira')).animationTimingFunction").startswith("cubic-bezier")
         paso(f"[{tema}] en reposo respira: {a[0]['d']/1000:.1f} s, sube 3 px y escala 1.02, solo transform, curva orgánica")
         marca = pg.evaluate("document.getElementById('abrirAsistente').__marca = 1")
@@ -39,10 +39,13 @@ with sync_playwright() as p:
         t = pg.evaluate(ANIMS, ".avatar-escena")
         assert t and t[0]["n"] == "avatar-toque" and "scale(0.97)" in t[0]["kf"] and t[0]["props"] == ["transform"], t
         pg.click("#abrirAsistente"); pg.wait_for_selector("#hojaAsistente[open]")
-        e = pg.evaluate(ANIMS, ".avatar-reaccion")
-        assert e and e[0]["n"] == "avatar-escucha" and 250 <= e[0]["d"] <= 400 and "translateY(-2px) scale(1.03)" in e[0]["kf"], e
-        paso(f"[{tema}] al tocar baja a 0.97 ({t[0]['d']:.0f} ms) y abre 'Tu asistente' con la microreacción 'te escucho' ({e[0]['d']:.0f} ms)")
-        pg.keyboard.press("Escape"); pg.wait_for_timeout(300)
+        # v26 "avatar único": el avatar de la tarjeta cede su lugar al de la hoja, que es el que atiende (gira hacia el contenido)
+        pg.wait_for_timeout(60)
+        e = pg.evaluate(ANIMS, "#hojaAsistente .asis-avatar")
+        assert e and any(x["n"] in ("hf-avatar-atiende", "avatar-panel-saluda") for x in e), e
+        assert all(x["props"] and set(x["props"]) <= {"transform", "opacity"} for x in e), e
+        paso(f"[{tema}] al tocar baja a 0.97 ({t[0]['d']:.0f} ms) y abre 'Tu asistente': la asistente del panel se orienta hacia el contenido ({e[0]['n']})")
+        pg.keyboard.press("Escape"); pg.wait_for_selector("#hojaAsistente:not([open])", state="attached"); pg.wait_for_timeout(300)
 
         # Atención: vencido → alert, dos pulsos y se apaga
         pg.evaluate(AGREGAR, {"id": "v1", "texto": "Mandar reporte", "min": -20})
@@ -86,11 +89,14 @@ with sync_playwright() as p:
     paso("parpadea sola cada pocos segundos (cuadro con ojos cerrados ~170 ms, solo opacity)")
     pg.evaluate("__gestos = []")
     pg.click("#abrirAsistente"); pg.wait_for_timeout(250)
-    g = pg.evaluate("__gestos"); assert "inclina" in g and "parpadea" in g, g
-    k = pg.evaluate(ANIMS, ".avatar-cabeza"); assert k and k[0]["n"] == "avatar-inclina" and k[0]["props"] == ["transform"], k
+    pg.wait_for_timeout(200)
+    g = pg.evaluate("__gestos"); assert "parpadea" in g, g  # la asistente acompaña a la ventana y parpadea (v26: avatar único)
+    k = pg.evaluate(ANIMS, "#hojaAsistente .asis-avatar"); assert k and set(k[0]["props"]) <= {"transform", "opacity"}, k
     pg.wait_for_timeout(120); pg.screenshot(path=os.path.join(SALIDA, "avatar-inclina.png"), clip={"x": 230, "y": 150, "width": 160, "height": 150})
-    paso("al tocarla inclina la cabeza y parpadea mientras abre 'Tu asistente'")
-    pg.keyboard.press("Escape"); pg.wait_for_timeout(1700); pg.evaluate("__gestos = []")
+    paso("al tocarla abre 'Tu asistente': la asistente parpadea y se orienta hacia el contenido de la ventana")
+    pg.keyboard.press("Escape"); pg.wait_for_selector("#hojaAsistente:not([open])", state="attached"); pg.wait_for_timeout(1700); pg.evaluate("__gestos = []")
+    assert pg.evaluate("(() => { const b = document.getElementById('abrirAsistente'); return b.closest('#resumen') !== null && getComputedStyle(b).display !== 'none'; })()")
+    paso("al cerrar la ventana la asistente regresa a su tarjeta en Hoy (antes se quedaba oculta hasta recargar)")
     pg.fill("#entrada", "comprar pan"); pg.press("#entrada", "Enter"); pg.wait_for_timeout(300)
     g = pg.evaluate("__gestos"); assert "asiente" in g, g
     paso("al crear un pendiente asiente con la cabeza")

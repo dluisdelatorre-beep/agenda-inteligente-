@@ -71,10 +71,10 @@ with sync_playwright() as p:
     hrefs = pg.eval_on_selector_all("#fichaAcciones a", "as => as.map(a => [a.textContent, a.getAttribute('href'), a.getAttribute('target')])")
     assert hrefs == [["📞 Llamar", "tel:9984292748", None], ["💬 WhatsApp", "https://wa.me/529984292748", "_blank"], ["✉️ Correo", "mailto:luis@ejemplo.com", None]], hrefs
     paso("crea contacto y su ficha trae Llamar · WhatsApp · Correo con enlaces estándar del teléfono")
-    pg.click("#fichaContacto [data-cerrar]")
+    pg.click("#fichaContacto [data-cerrar]"); pg.wait_for_selector("#fichaContacto:not([open])", state="attached")
     for d in [dict(nombre="Luis", apellidos="Pérez", telefono="55 1234 5678", empresa="Notaría 5"),
               dict(nombre="Ana", apellidos="Gómez", email="ana@correo.mx", etiquetas="familia", cumpleanos="1990-10-20")]:
-        pg.click("#nuevoContacto"); nuevo_contacto(pg, **d); pg.wait_for_selector("#fichaContacto[open]"); pg.click("#fichaContacto [data-cerrar]")
+        pg.click("#nuevoContacto"); nuevo_contacto(pg, **d); pg.wait_for_selector("#fichaContacto[open]"); pg.click("#fichaContacto [data-cerrar]"); pg.wait_for_selector("#fichaContacto:not([open])", state="attached")
     nombres = pg.locator("#listaContactos .contacto-txt strong").evaluate_all("e => e.map(x => x.textContent)")
     assert nombres == ["⭐ Luis de la Torre", "Ana Gómez", "Luis Pérez"], nombres
     def busca(q):
@@ -95,7 +95,7 @@ with sync_playwright() as p:
     pg.click("#fichaEditar"); pg.wait_for_selector("#editorContacto[open]")
     pg.fill("#formContacto [name=empresa]", "Notaría 12"); pg.click("#formContacto button[type=submit]"); pg.wait_for_timeout(200)
     assert "Notaría 12" in pg.inner_text("#fichaEmpresa")
-    pg.click("#fichaContacto [data-cerrar]")
+    pg.click("#fichaContacto [data-cerrar]"); pg.wait_for_selector("#fichaContacto:not([open])", state="attached")
     assert pg.locator("#listaContactos .contacto-txt strong").evaluate_all("e => e.map(x => x.textContent)")[:2] == ["⭐ Luis de la Torre", "⭐ Luis Pérez"]
     paso("edita datos y marca favoritos")
 
@@ -163,7 +163,7 @@ with sync_playwright() as p:
     pg.click("#fichaPendientes button:has-text('Completar')"); pg.wait_for_timeout(200)
     assert "0 pendientes relacionados" in pg.inner_text("#fichaPendTitulo") and "✓ Llamar a Luis" in pg.inner_text("#fichaPendientes")
     paso("la ficha muestra sus pendientes relacionados y permite completarlos")
-    pg.click("#fichaContacto [data-cerrar]")
+    pg.click("#fichaContacto [data-cerrar]"); pg.wait_for_selector("#fichaContacto:not([open])", state="attached")
 
     # ---- Cumpleaños opcional ----
     pg.click("#verContactos"); pg.click("#listaContactos .contacto-abrir:has-text('Ana Gómez')"); pg.wait_for_selector("#fichaContacto[open]")
@@ -243,7 +243,7 @@ with sync_playwright() as p:
     pg.screenshot(path=os.path.join(SALIDA, "contactos-lista.png"), full_page=True)
     pg.click("#listaContactos .contacto-abrir >> nth=0"); pg.wait_for_selector("#fichaContacto[open]")
     assert pg.evaluate("document.querySelector('#fichaContacto .hoja-cuerpo').scrollWidth <= document.querySelector('#fichaContacto .hoja-cuerpo').clientWidth")
-    pg.click("#fichaContacto [data-cerrar]")
+    pg.click("#fichaContacto [data-cerrar]"); pg.wait_for_selector("#fichaContacto:not([open])", state="attached")
     paso("en el teléfono no hay desplazamiento horizontal en la lista ni en la ficha")
     ctx.close()
 
