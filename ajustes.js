@@ -5,7 +5,7 @@
 (function () {
   const COPIA = 'agenda-inteligente:ajustes';
   const PREDETERMINADOS = Object.freeze({
-    theme: 'auto',          // auto | claro | oscuro
+    theme: 'esmeralda',     // esmeralda (base) | claro | oscuro
     accentColor: 'verde',   // verde | naranja | azul | morado | rojo
     density: 'comoda',      // comoda | compacta
     textSize: 'normal',     // normal | grande
@@ -15,7 +15,7 @@
     vibrationEnabled: true,
   });
   const VALIDOS = {
-    theme: ['auto', 'claro', 'oscuro'],
+    theme: ['esmeralda', 'claro', 'oscuro'],
     accentColor: ['verde', 'naranja', 'azul', 'morado', 'rojo'],
     density: ['comoda', 'compacta'],
     textSize: ['normal', 'grande'],
@@ -46,11 +46,11 @@
     h.dataset.accent = a.accentColor;
     h.dataset.density = a.density;
     h.dataset.text = a.textSize;
-    const oscuro = a.theme === 'oscuro' || (a.theme === 'auto' && matchMedia('(prefers-color-scheme: dark)').matches);
+    const oscuro = a.theme === 'oscuro';
     document.querySelectorAll('meta[name="theme-color"]').forEach((m) => m.remove());
     const meta = document.createElement('meta');
     meta.name = 'theme-color';
-    meta.content = oscuro ? '#111717' : '#f6f3ec';
+    meta.content = oscuro ? '#111717' : a.theme === 'esmeralda' ? '#052f27' : '#f6f3ec';
     document.head.appendChild(meta);
   }
 
@@ -79,8 +79,7 @@
 
   const restaurar = () => cambiar({ ...PREDETERMINADOS });
 
-  // Si el tema es "automático" y el sistema cambia de claro a oscuro, seguirlo.
-  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => aplicar());
+  // Esmeralda es el tema base. Claro y oscuro solo cambian por elección del usuario.
 
   // ---- Sonidos dentro de la app ----
   // Cada estilo es una receta corta de notas. Volumen moderado y fundido suave.
