@@ -53,13 +53,13 @@
     .app.app-preentrada{animation:app-respaldo .5s 3.2s forwards}
     @keyframes app-respaldo{to{opacity:1;transform:none;filter:none}}
   </style>
-  <link rel="stylesheet" href="styles.css?v=31">
+  <link rel="stylesheet" href="styles.css?v=32">
   <script>
     // Aplica tema, acento, densidad y texto antes de pintar, para que no parpadee.
     try {
       var a = JSON.parse(localStorage.getItem('agenda-inteligente:ajustes')) || {};
       var h = document.documentElement;
-      h.dataset.theme = a.theme || 'auto';
+      h.dataset.theme = (a.theme === 'claro' || a.theme === 'oscuro' || a.theme === 'esmeralda') ? a.theme : 'esmeralda';
       h.dataset.accent = a.accentColor || 'verde';
       h.dataset.density = a.density || 'comoda';
       h.dataset.text = a.textSize || 'normal';
@@ -134,7 +134,7 @@
         <button id="permiso" class="permiso" hidden>Activar avisos</button>
         <p id="estadoAvisos" class="estado-avisos"></p>
         <p>Toca un pendiente para editarlo.</p>
-        <p class="version" id="version">Versión 31</p>
+        <p class="version" id="version">Versión 32</p>
       </footer>
       </div>
     </section>
@@ -225,7 +225,7 @@
         <fieldset class="ajuste">
           <legend>Tema</legend>
           <div class="segmentos" data-ajuste="theme">
-            <label><input type="radio" name="theme" value="auto"><span>Automático</span></label>
+            <label><input type="radio" name="theme" value="esmeralda"><span>Esmeralda</span></label>
             <label><input type="radio" name="theme" value="claro"><span>Claro</span></label>
             <label><input type="radio" name="theme" value="oscuro"><span>Oscuro</span></label>
           </div>
