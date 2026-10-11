@@ -1,6 +1,6 @@
 /* =========================================================
    Agenda Inteligente — estilos
-   Tema (auto/claro/oscuro), acento, densidad y texto se
+   Tema (esmeralda/claro/oscuro), acento, densidad y texto se
    controlan con atributos en <html>: data-theme, data-accent,
    data-density y data-text (los pone ajustes.js).
    ========================================================= */
@@ -12,7 +12,7 @@
 [data-accent="morado"]  { --ac-claro: #6447a3; --ac-oscuro: #b9a2ec; }
 [data-accent="rojo"]    { --ac-claro: #a8483e; --ac-oscuro: #f0a196; }
 
-/* ---- Tema claro (predeterminado) ---- */
+/* ---- Base de variables claras; el tema predeterminado real es Esmeralda ---- */
 :root {
   --fondo: #f7f1e3;
   --papel: #fffaf0;
@@ -1872,4 +1872,35 @@ dialog.hoja-abajo[open]:not(.cerrando) .campos-contacto{
 @keyframes v31-micro{0%,100%{transform:none}40%{transform:rotate(2.6deg) translateY(-1px)}70%{transform:rotate(1deg)}}
 @media (prefers-reduced-motion: reduce){
   .asistente-btn.saluda .avatar-reaccion,.asistente-btn.microgesto .avatar-reaccion{animation:none !important}
+}
+
+
+/* ===== v32 · Esmeralda por defecto + materialización real de ventanas =====
+   La paleta NO participa en la animación: la superficie conserva su tema.
+   Entrada: difusa/tenue -> definida -> completamente sólida. Salida: recorrido inverso. */
+dialog.hoja[open]:not(.cerrando),
+dialog.hoja-abajo[open]:not(.cerrando) .hoja-cuerpo{
+  animation:v32-materializa .48s cubic-bezier(.18,.82,.22,1) both !important;
+  transform-origin:50% 55%;
+  will-change:transform,opacity,filter;
+}
+@keyframes v32-materializa{
+  0%{opacity:.18;transform:perspective(1000px) translateZ(-62px) translateY(10px) scale(.972);filter:blur(14px)}
+  38%{opacity:.62;transform:perspective(1000px) translateZ(-26px) translateY(5px) scale(.987);filter:blur(6px)}
+  72%{opacity:.92;transform:perspective(1000px) translateZ(-6px) translateY(1px) scale(.997);filter:blur(1.5px)}
+  100%{opacity:1;transform:none;filter:blur(0)}
+}
+dialog.hoja.cerrando[open],
+dialog.hoja-abajo.cerrando[open] .hoja-cuerpo{
+  animation:v32-desmaterializa .28s cubic-bezier(.4,0,1,1) both !important;
+}
+@keyframes v32-desmaterializa{
+  0%{opacity:1;transform:none;filter:blur(0)}
+  100%{opacity:0;transform:perspective(1000px) translateZ(-42px) translateY(8px) scale(.978);filter:blur(9px)}
+}
+@media(prefers-reduced-motion:reduce){
+  dialog.hoja[open]:not(.cerrando),
+  dialog.hoja-abajo[open]:not(.cerrando) .hoja-cuerpo,
+  dialog.hoja.cerrando[open],
+  dialog.hoja-abajo.cerrando[open] .hoja-cuerpo{animation:none !important}
 }
