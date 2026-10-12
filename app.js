@@ -35,6 +35,18 @@
       const d = e.target;
       if (d instanceof HTMLDialogElement && animable(d)) { e.preventDefault(); d.close(); }
     }, true);
+    // v33: El envío nativo de form[method=dialog] cierra la ventana sin
+    // pasar por HTMLDialogElement.close(): se perdía la salida animada.
+    // Interceptamos solamente formularios dentro de los diálogos propios,
+    // conservando returnValue y los manejadores de 'close' existentes.
+    document.addEventListener('submit', (e) => {
+      const form = e.target;
+      if (!(form instanceof HTMLFormElement) || form.method !== 'dialog') return;
+      const d = form.closest('dialog.hoja, dialog.hoja-abajo');
+      if (!d || !d.open) return;
+      e.preventDefault();
+      d.close(e.submitter?.value || '');
+    }, true);
   })();
   let pendientes = [];
   let filtro = 'pendientes';
