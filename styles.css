@@ -1904,3 +1904,112 @@ dialog.hoja-abajo.cerrando[open] .hoja-cuerpo{
   dialog.hoja.cerrando[open],
   dialog.hoja-abajo.cerrando[open] .hoja-cuerpo{animation:none !important}
 }
+
+/* ===== v33 · Claro y oscuro reales, esmeralda como tema de entrada =====
+   v27 usaba :not([data-theme="claro"]) y daba el MISMO verde tanto a
+   esmeralda como a oscuro. El oscuro es grafito neutral; Esmeralda
+   mantiene sus colores originales. Estas reglas están al final
+   deliberadamente para corregir las superficies v26-v32 con !important. */
+:root[data-theme="oscuro"] {
+  --fondo:#10161b; --papel:#1c262b; --tinta:#f3f5f2;
+  --suave:#c0cbd0; --linea:#374850; --ok:#70d4b1;
+  --acento:var(--ac-oscuro); --sobre-acento:#0d171c;
+  --atrasado-resumen:#f4b58d;
+  color-scheme:dark;
+}
+html[data-theme="oscuro"] body,
+html[data-theme="oscuro"] body::before {
+  background:#10161b !important;
+  background-image:none !important;
+}
+html[data-theme="oscuro"] .hoy-panel,
+html[data-theme="oscuro"] .hoy-lista,
+html[data-theme="oscuro"] .bloque,
+html[data-theme="oscuro"] .item,
+html[data-theme="oscuro"] .captura,
+html[data-theme="oscuro"] .mes,
+html[data-theme="oscuro"] .stats-tiles>*,
+html[data-theme="oscuro"] .contacto,
+html[data-theme="oscuro"] .hoja,
+html[data-theme="oscuro"] .hoja-cuerpo {
+  background:#1c262b !important; color:#f3f5f2 !important;
+  border-color:#374850 !important;
+  box-shadow:0 14px 34px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.04) !important;
+}
+html[data-theme="oscuro"] .hoy-panel {
+  background:linear-gradient(155deg,#243039,#182127) !important;
+}
+html[data-theme="oscuro"] .hoy-lista {
+  background:#182126 !important;
+}
+html[data-theme="oscuro"] .resumen {
+  background:linear-gradient(140deg,#26393e,#18242c) !important;
+  color:#f3f5f2 !important; border-color:#41535b !important;
+  box-shadow:0 12px 28px rgba(0,0,0,.28) !important;
+}
+html[data-theme="oscuro"] .resumen .hora {color:#95e5d4 !important}
+html[data-theme="oscuro"] .captura input,
+html[data-theme="oscuro"] .busqueda input,
+html[data-theme="oscuro"] .campos-contacto input,
+html[data-theme="oscuro"] .campos-contacto textarea {
+  background:#10191f !important;color:#f3f5f2 !important;
+  border-color:#374850 !important;
+}
+html[data-theme="oscuro"] .captura input::placeholder,
+html[data-theme="oscuro"] .busqueda input::placeholder,
+html[data-theme="oscuro"] .campos-contacto input::placeholder,
+html[data-theme="oscuro"] .campos-contacto textarea::placeholder {
+  color:#b5c1c7 !important;opacity:1;
+}
+html[data-theme="oscuro"] .tabbar {
+  background:#151e24 !important;border-color:#374850 !important;
+  box-shadow:0 -10px 28px rgba(0,0,0,.24) !important;
+}
+html[data-theme="oscuro"] .filtro,
+html[data-theme="oscuro"] .chip,
+html[data-theme="oscuro"] .secundario,
+html[data-theme="oscuro"] .secundario-ancho,
+html[data-theme="oscuro"] .ir-stats,
+html[data-theme="oscuro"] .volver,
+html[data-theme="oscuro"] .redondo,
+html[data-theme="oscuro"] .ir-hoy {
+  color:#d3e0e2 !important;border-color:#475963 !important;
+}
+html[data-theme="oscuro"] .marca-app .ir-stats,
+html[data-theme="oscuro"] .captura button:disabled {
+  background:#263239 !important;color:#d2dce0 !important;
+  border-color:#475963 !important;
+}
+html[data-theme="oscuro"] .accion-item.incompleta {
+  border-color:#475963 !important;color:#d2dce0 !important;
+}
+html[data-theme="oscuro"] .hoja::backdrop,
+html[data-theme="oscuro"] .hoja-abajo::backdrop {
+  background:rgba(7,11,15,.74) !important;
+}
+html[data-theme="oscuro"] .nombre-app,
+html[data-theme="oscuro"] .encabezado h1,
+html[data-theme="oscuro"] .titulo-dia h2,
+html[data-theme="oscuro"] .bloque-titulo {color:#f2cf7d !important}
+
+/* Toda pantalla usa el mismo gesto de difuso a nítido que las ventanas.
+   Sin ocultar la pantalla entera: evita el doble destello de v30/v31. */
+.vista.entra-adelante,
+.vista.entra-atras {
+  animation:v33-vista-materializa .40s cubic-bezier(.2,.8,.2,1) both !important;
+}
+@keyframes v33-vista-materializa {
+  0% {opacity:1;transform:perspective(1000px) translateZ(-28px) translateY(6px) scale(.988);filter:blur(7px)}
+  60% {opacity:1;transform:perspective(1000px) translateZ(-7px) translateY(1px) scale(.996);filter:blur(2px)}
+  100% {opacity:1;transform:none;filter:none}
+}
+/* Todas las ventanas, no sólo la del avatar, repiten materialización. */
+dialog.hoja[open]:not(.cerrando),
+dialog.hoja-abajo[open]:not(.cerrando) .hoja-cuerpo {
+  animation:v32-materializa .46s cubic-bezier(.18,.82,.22,1) both !important;
+}
+@media (prefers-reduced-motion:reduce) {
+  .vista.entra-adelante,.vista.entra-atras,
+  dialog.hoja[open]:not(.cerrando),
+  dialog.hoja-abajo[open]:not(.cerrando) .hoja-cuerpo {animation:none !important;filter:none !important}
+}
